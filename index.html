@@ -1,0 +1,1190 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Comedores Sociales · Tablero de Ejecución — MIDES</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<!-- Librerías estáticas (vía CDN de cdnjs). Si su red bloquea CDNs, descargue estos
+     dos archivos y colóquelos junto a index.html cambiando el src por la ruta local. -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+:root{
+  --bg:#0A1120; --bg2:#0c1526; --panel:#0F1B2E; --panel2:#0d2137; --inset:#122238;
+  --line:#1E3A5F; --line2:#26456f;
+  --txt:#F1F5F9; --muted:#94A3B8;
+  --muted2:#607089;
+  --accent:#3B82F6; --accent2:#60A5FA; --accent3:#93C5FD;
+  --ok:#34D399; --warn:#FBBF24; --bad:#F87171;
+  --z-bad:#EF4444; --z-warn:#F59E0B; --z-ok:#10B981; --z-track:#17293f;
+  --ramp0:#16263d; --ramp1:#1d4ed8;
+  --shadow:0 10px 34px rgba(0,0,0,.45);
+  --radius:14px;
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;background:
+  radial-gradient(1200px 700px at 78% -8%, #10233c 0%, transparent 60%),
+  radial-gradient(900px 600px at 8% 108%, #0c1c30 0%, transparent 55%),
+  var(--bg);
+  color:var(--txt);font-family:'Inter',system-ui,-apple-system,sans-serif;
+  min-height:100%;-webkit-font-smoothing:antialiased;}
+h1,h2,h3,h4{font-family:'Space Grotesk',system-ui,sans-serif;margin:0;font-weight:600;}
+.mono{font-family:'Space Grotesk',ui-monospace,monospace;font-variant-numeric:tabular-nums;font-feature-settings:"tnum";}
+.shell{max-width:1320px;margin:0 auto;padding:22px 20px 60px;}
+
+/* ---------- Header ---------- */
+.top{display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin-bottom:20px;}
+.seal{width:46px;height:46px;flex:0 0 auto;border-radius:12px;
+  background:conic-gradient(from 210deg,#1d4ed8,#3B82F6,#60A5FA,#1d4ed8);
+  display:grid;place-items:center;box-shadow:0 6px 18px rgba(37,99,235,.35);position:relative;}
+.seal::after{content:"";position:absolute;inset:3px;border-radius:9px;background:var(--bg);}
+.seal svg{position:relative;z-index:1;}
+.top .tt{line-height:1.15;}
+.top .eyebrow{font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:var(--accent2);
+  font-family:'Space Grotesk';font-weight:600;}
+.top h1{font-size:23px;letter-spacing:-.01em;margin-top:2px;}
+.top .sub{font-size:12.5px;color:var(--muted);margin-top:3px;}
+.top .spacer{flex:1 1 40px;}
+.status{display:flex;gap:8px;flex-wrap:wrap;}
+.chip{display:inline-flex;align-items:center;gap:7px;font-size:11.5px;color:var(--muted);
+  background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:6px 12px;}
+.chip .dot{width:8px;height:8px;border-radius:50%;background:var(--muted2);box-shadow:0 0 0 3px rgba(148,163,184,.12);}
+.chip.on{color:var(--txt);border-color:var(--line2);}
+.chip.on .dot{background:var(--ok);box-shadow:0 0 0 3px rgba(52,211,153,.16);}
+
+/* ---------- Upload cards ---------- */
+.feed{display:grid;grid-template-columns:repeat(auto-fit,minmax(270px,1fr));gap:14px;margin-bottom:22px;}
+.drop{position:relative;border:1.5px dashed var(--line2);border-radius:var(--radius);
+  background:linear-gradient(180deg,rgba(19,34,56,.55),rgba(13,27,46,.35));
+  padding:16px 18px;display:flex;gap:14px;align-items:center;cursor:pointer;
+  transition:border-color .18s, background .18s, transform .12s;}
+.drop:hover{border-color:var(--accent);background:linear-gradient(180deg,rgba(22,42,68,.7),rgba(15,30,52,.5));}
+.drop.drag{border-color:var(--accent2);border-style:solid;background:rgba(30,58,95,.4);transform:translateY(-1px);}
+.drop.loaded{border-style:solid;border-color:var(--line2);}
+.drop .ic{width:42px;height:42px;flex:0 0 auto;border-radius:11px;display:grid;place-items:center;
+  background:var(--panel2);border:1px solid var(--line);color:var(--accent2);}
+.drop.loaded .ic{color:var(--ok);border-color:rgba(52,211,153,.4);background:rgba(16,185,129,.08);}
+.drop .meta{min-width:0;}
+.drop .lbl{font-family:'Space Grotesk';font-weight:600;font-size:13.5px;color:var(--txt);}
+.drop .hint{font-size:11.5px;color:var(--muted);margin-top:2px;line-height:1.4;overflow:hidden;text-overflow:ellipsis;}
+.drop .tag{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent2);
+  font-family:'Space Grotesk';font-weight:600;}
+.drop.loaded .tag{color:var(--ok);}
+.drop input{display:none;}
+
+/* ---------- Tabs ---------- */
+.tabs{display:inline-flex;gap:4px;background:var(--panel);border:1px solid var(--line);
+  border-radius:12px;padding:4px;margin-bottom:20px;}
+.tab{border:0;background:transparent;color:var(--muted);font-family:'Space Grotesk';font-weight:600;
+  font-size:13.5px;padding:9px 18px;border-radius:9px;cursor:pointer;display:inline-flex;align-items:center;gap:8px;
+  transition:color .15s, background .15s;}
+.tab:hover{color:var(--txt);}
+.tab.active{background:linear-gradient(180deg,#1d4ed8,#2563EB);color:#fff;box-shadow:0 4px 14px rgba(37,99,235,.4);}
+.tab .n{font-size:11px;opacity:.75;}
+
+.panel{display:none;animation:fade .35s ease;}
+.panel.show{display:block;}
+@keyframes fade{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:none;}}
+
+/* ---------- Cards / grid ---------- */
+.card{background:linear-gradient(180deg,var(--panel),#0d1a2c);border:1px solid var(--line);
+  border-radius:var(--radius);padding:16px 18px;box-shadow:var(--shadow);}
+.card h3{font-size:13px;letter-spacing:.02em;color:var(--txt);display:flex;align-items:baseline;gap:8px;}
+.card h3 .src{font-family:'Inter';font-weight:500;font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--muted2);margin-left:auto;}
+.card .csub{font-size:11.5px;color:var(--muted);margin-top:3px;}
+.sect-h{display:flex;align-items:center;gap:12px;margin:26px 0 14px;}
+.sect-h .k{font-family:'Space Grotesk';font-weight:600;font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:var(--accent2);}
+.sect-h .ln{flex:1;height:1px;background:linear-gradient(90deg,var(--line2),transparent);}
+.grid{display:grid;gap:14px;grid-template-columns:repeat(2,1fr);}
+.grid .full{grid-column:1/-1;}
+.chartbox{position:relative;height:280px;margin-top:10px;}
+.chartbox.tall{height:340px;}
+.empty{color:var(--muted);font-size:13px;text-align:center;padding:40px 10px;line-height:1.5;}
+.empty svg{opacity:.5;margin-bottom:10px;}
+
+/* ---------- Gauges / medidores (indicadores) ---------- */
+.gauges{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:16px;}
+.gauge{background:linear-gradient(180deg,var(--panel),#0c1a2b);border:1px solid var(--line);
+  border-radius:var(--radius);padding:8px 10px 14px;box-shadow:var(--shadow);text-align:center;position:relative;overflow:hidden;}
+.gauge .gtitle{font-family:'Space Grotesk';font-weight:600;font-size:12.5px;color:var(--txt);margin-top:8px;}
+.gauge .gsub{font-size:11px;color:var(--muted);margin-top:2px;min-height:15px;}
+.gauge svg{width:100%;height:auto;display:block;}
+.gauge .needle{filter:drop-shadow(0 2px 4px rgba(0,0,0,.5));}
+.diag{background:var(--panel2);border:1px solid var(--line);border-left:3px solid var(--accent);
+  border-radius:10px;padding:11px 14px;font-size:12.5px;color:#cbd5e1;margin-bottom:18px;line-height:1.5;display:flex;gap:10px;align-items:flex-start;}
+.diag.bal{border-left-color:var(--ok);} .diag.over{border-left-color:var(--warn);} .diag.under{border-left-color:var(--accent2);}
+.diag b{color:var(--txt);font-weight:600;}
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:18px;}
+.kpi{background:var(--panel2);border:1px solid var(--line);border-radius:11px;padding:12px 14px;}
+.kpi .k{font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);}
+.kpi .v{font-family:'Space Grotesk';font-weight:700;font-size:20px;color:var(--accent3);margin-top:3px;letter-spacing:-.01em;}
+.kpi .v.sm{font-size:16px;}
+
+/* ---------- Map ---------- */
+.maprow{display:grid;grid-template-columns:1fr 328px;gap:14px;align-items:stretch;}
+.mapwrap{position:relative;background:
+  radial-gradient(circle at 46% 30%, #0d2137 0%, #060B14 84%);
+  border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;min-height:560px;box-shadow:var(--shadow);}
+#svgmap{width:100%;height:100%;display:block;min-height:560px;}
+.dep{cursor:pointer;stroke:#60A5FA;stroke-width:.35;transition:fill .25s, stroke-width .15s;}
+.dep:hover{stroke-width:1.1;stroke:#BFDBFE;}
+.reclamo{fill:#242c39;stroke:#79839a;stroke-width:.5;stroke-dasharray:1.6 1.4;cursor:default;}
+.deplabel{font-size:2.35px;fill:#e2e8f0;pointer-events:none;text-anchor:middle;font-weight:700;
+  font-family:'Space Grotesk';paint-order:stroke;stroke:#0a1322;stroke-width:.5px;}
+.reclabel{font-size:2.6px;fill:#cbd5e1;pointer-events:none;text-anchor:middle;font-style:italic;font-weight:700;
+  letter-spacing:.3px;paint-order:stroke;stroke:#0a1322;stroke-width:.5px;}
+.marker{cursor:pointer;stroke:#0a1322;stroke-width:.12;transition:r .1s;}
+.mfijo{fill:#3B82F6;} .mmovil{fill:#FBBF24;}
+.mtopbar{position:absolute;top:12px;left:12px;display:flex;gap:8px;align-items:center;z-index:12;}
+#mapback{display:none;background:#1E3A5F;color:#E2E8F0;border:none;border-radius:8px;padding:7px 13px;
+  font-size:12.5px;font-weight:600;cursor:pointer;font-family:'Space Grotesk';}
+#mapback:hover{background:#2A4D7A;}
+#maptitle{font-family:'Space Grotesk';font-size:13.5px;font-weight:700;color:#F1F5F9;
+  background:rgba(8,14,24,.72);padding:7px 13px;border-radius:8px;}
+#maptip{position:absolute;pointer-events:none;background:rgba(8,14,24,.97);border:1px solid var(--accent);
+  border-radius:9px;padding:8px 11px;font-size:12px;display:none;max-width:240px;z-index:20;box-shadow:0 6px 20px rgba(0,0,0,.5);}
+#maptip b{color:#93C5FD;font-family:'Space Grotesk';}
+.mlegend{position:absolute;bottom:12px;left:12px;background:rgba(8,14,24,.86);border:1px solid var(--line);
+  border-radius:10px;padding:9px 12px;font-size:11px;z-index:11;line-height:1.7;}
+.mlegend .row{display:flex;align-items:center;gap:6px;}
+.sw{width:12px;height:12px;border-radius:3px;display:inline-block;}
+.mdot{width:9px;height:9px;border-radius:50%;display:inline-block;}
+.mnote{position:absolute;bottom:12px;right:12px;max-width:260px;background:rgba(8,14,24,.82);
+  border:1px dashed #6b7280;border-radius:10px;padding:7px 10px;font-size:9.5px;color:#9ca3af;z-index:11;line-height:1.45;}
+.side{background:linear-gradient(180deg,var(--panel),#0d1a2c);border:1px solid var(--line);
+  border-radius:var(--radius);padding:16px;overflow-y:auto;max-height:calc(560px + 0px);box-shadow:var(--shadow);}
+.side h2{font-size:16px;margin:2px 0 12px;}
+.side h4{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin:16px 0 8px;font-family:'Space Grotesk';}
+.stat{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:11px 13px;margin-bottom:9px;}
+.stat .k{font-size:11px;color:var(--muted);}
+.stat .v{font-family:'Space Grotesk';font-size:20px;font-weight:800;color:#93C5FD;margin-top:2px;letter-spacing:-.01em;}
+.muni{display:flex;justify-content:space-between;gap:8px;padding:8px 10px;border-radius:8px;font-size:12px;
+  margin-bottom:4px;background:var(--panel2);cursor:pointer;transition:background .12s;}
+.muni:hover{background:var(--inset);}
+.muni .nm{color:#E2E8F0;} .muni .mt{color:var(--muted);font-size:11px;text-align:right;}
+.pill{display:inline-block;font-size:9.5px;padding:1px 7px;border-radius:10px;margin-left:6px;font-weight:700;vertical-align:middle;font-family:'Space Grotesk';}
+.pill.fijo{background:#1e3a5f;color:#93C5FD;} .pill.movil{background:#3b2f1e;color:#FBBF24;}
+
+.foot{margin-top:34px;padding-top:16px;border-top:1px solid var(--line);color:var(--muted2);font-size:11px;line-height:1.6;}
+.foot b{color:var(--muted);}
+
+@media (max-width:980px){
+  .feed{grid-template-columns:1fr;} .grid{grid-template-columns:1fr;}
+  .gauges{grid-template-columns:1fr;} .kpis{grid-template-columns:repeat(2,1fr);}
+  .maprow{grid-template-columns:1fr;} .side{max-height:none;}
+  .mapwrap,#svgmap{min-height:460px;}
+}
+/* ---------- Clasificador Global ---------- */
+.clas-hero{display:flex;align-items:flex-end;gap:18px;flex-wrap:wrap;margin-bottom:16px;
+  background:linear-gradient(120deg,rgba(37,99,235,.14),rgba(15,27,46,.2));
+  border:1px solid var(--line);border-radius:var(--radius);padding:18px 20px;box-shadow:var(--shadow);}
+.clas-hero .htx{line-height:1;}
+.clas-hero .hlabel{font-family:'Space Grotesk';font-weight:600;font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--accent2);}
+.clas-num{font-family:'Space Grotesk';font-weight:700;font-size:clamp(38px,7vw,64px);letter-spacing:-.02em;
+  color:#fff;margin-top:6px;line-height:.95;}
+.clas-hero .hsub{font-size:12.5px;color:var(--muted);margin-top:8px;max-width:340px;line-height:1.45;}
+.clas-hero .spacer{flex:1;}
+.period-chips{display:flex;gap:6px;flex-wrap:wrap;}
+.pchip{border:1px solid var(--line2);background:var(--panel2);color:var(--muted);font-family:'Space Grotesk';
+  font-weight:600;font-size:12px;padding:7px 14px;border-radius:999px;cursor:pointer;transition:all .15s;}
+.pchip:hover{color:var(--txt);border-color:var(--accent);}
+.pchip.on{background:linear-gradient(180deg,#1d4ed8,#2563EB);color:#fff;border-color:transparent;box-shadow:0 3px 12px rgba(37,99,235,.4);}
+
+.clas-main{display:grid;grid-template-columns:1fr 300px;gap:14px;margin-bottom:16px;}
+.crowd-card{background:linear-gradient(180deg,var(--panel),#0c1a2b);border:1px solid var(--line);
+  border-radius:var(--radius);padding:14px 16px 12px;box-shadow:var(--shadow);}
+.dim-toggle{display:inline-flex;gap:3px;background:var(--panel2);border:1px solid var(--line);border-radius:11px;padding:3px;margin-bottom:8px;}
+.dbtn{border:0;background:transparent;color:var(--muted);font-family:'Space Grotesk';font-weight:600;font-size:12.5px;
+  padding:7px 15px;border-radius:8px;cursor:pointer;transition:all .15s;}
+.dbtn:hover{color:var(--txt);}
+.dbtn.on{background:#1d4ed8;color:#fff;box-shadow:0 3px 10px rgba(37,99,235,.35);}
+.crowd-hint{font-size:11px;color:var(--muted2);margin:2px 0 8px;}
+.crowd{width:100%;}
+.crowd svg{width:100%;height:auto;display:block;}
+.crowd use{transition:fill .55s ease, opacity .4s ease;opacity:0;}
+.crowd.shown use{opacity:1;}
+
+.clas-legend{background:linear-gradient(180deg,var(--panel),#0c1a2b);border:1px solid var(--line);
+  border-radius:var(--radius);padding:16px;box-shadow:var(--shadow);}
+.clas-legend h4{font-family:'Space Grotesk';font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-bottom:12px;}
+.leg-row{margin-bottom:13px;}
+.leg-top{display:flex;align-items:baseline;gap:8px;margin-bottom:5px;}
+.leg-sw{width:11px;height:11px;border-radius:3px;flex:0 0 auto;}
+.leg-nm{font-size:12.5px;color:var(--txt);font-weight:500;}
+.leg-pct{margin-left:auto;font-family:'Space Grotesk';font-weight:700;font-size:14px;color:#fff;}
+.leg-ct{font-size:11px;color:var(--muted);}
+.leg-bar{height:7px;border-radius:5px;background:var(--inset);overflow:hidden;}
+.leg-fill{height:100%;border-radius:5px;transition:width .8s cubic-bezier(.3,1,.4,1);}
+
+/* age pictograph */
+.age-picto{background:linear-gradient(180deg,var(--panel),#0c1a2b);border:1px solid var(--line);
+  border-radius:var(--radius);padding:16px 18px;box-shadow:var(--shadow);margin-bottom:16px;}
+.age-picto h3{font-size:13px;margin-bottom:3px;}
+.age-picto .csub{font-size:11.5px;color:var(--muted);margin-bottom:14px;}
+.age-row{display:grid;grid-template-columns:52px 168px 1fr auto;gap:14px;align-items:center;
+  padding:11px 0;border-top:1px solid var(--line);}
+.age-row:first-of-type{border-top:0;}
+.age-ic{width:48px;height:48px;display:grid;place-items:center;border-radius:12px;background:var(--panel2);border:1px solid var(--line);}
+.age-meta .an{font-family:'Space Grotesk';font-weight:600;font-size:13px;color:var(--txt);}
+.age-meta .ar{font-size:11px;color:var(--muted);margin-top:1px;}
+.age-figs{display:flex;flex-wrap:wrap;gap:2px;align-content:center;min-height:34px;}
+.age-figs svg{opacity:0;animation:figin .4s ease forwards;}
+.age-val{text-align:right;min-width:96px;}
+.age-val .n{font-family:'Space Grotesk';font-weight:700;font-size:19px;color:#fff;letter-spacing:-.01em;}
+.age-val .p{font-size:11.5px;color:var(--muted);}
+@keyframes figin{from{opacity:0;transform:translateY(4px) scale(.6);}to{opacity:1;transform:none;}}
+
+/* ethnic */
+.eth-card{background:linear-gradient(180deg,var(--panel),#0c1a2b);border:1px solid var(--line);
+  border-radius:var(--radius);padding:16px 18px;box-shadow:var(--shadow);}
+.eth-card h3{font-size:13px;margin-bottom:3px;}
+.eth-card .csub{font-size:11.5px;color:var(--muted);margin-bottom:14px;}
+.eth-bar{display:flex;height:30px;border-radius:9px;overflow:hidden;border:1px solid var(--line);}
+.eth-seg{transition:flex-grow .8s cubic-bezier(.3,1,.4,1);min-width:2px;}
+.eth-legend{display:flex;flex-wrap:wrap;gap:14px 22px;margin-top:14px;}
+.eth-item{display:flex;align-items:center;gap:8px;}
+.eth-item .sw{width:11px;height:11px;border-radius:3px;}
+.eth-item .t{font-size:12px;color:var(--txt);}
+.eth-item .t b{font-family:'Space Grotesk';color:#fff;}
+.eth-item .t span{color:var(--muted);}
+.eth-note{margin-top:14px;background:var(--panel2);border:1px solid var(--line);border-left:3px solid var(--ok);
+  border-radius:10px;padding:11px 14px;font-size:12px;color:#cbd5e1;line-height:1.5;}
+.eth-note b{color:var(--txt);}
+
+@media (max-width:980px){ .clas-main{grid-template-columns:1fr;} .age-row{grid-template-columns:44px 1fr;grid-template-areas:"ic meta" "figs figs" "val val";row-gap:6px;} .age-ic{grid-area:ic;} .age-meta{grid-area:meta;} .age-figs{grid-area:figs;} .age-val{grid-area:val;text-align:left;} }
+@media (prefers-reduced-motion:reduce){*{animation-duration:.001s!important;transition-duration:.001s!important;}}
+/* ---------- Indicadores: subsecciones + proyección anual ---------- */
+.mini-h{display:flex;align-items:center;gap:10px;margin:2px 0 12px;}
+.mini-h .mk{font-family:'Space Grotesk';font-weight:600;font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);}
+.mini-h .src{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted2);}
+.mini-h .ln{flex:1;height:1px;background:linear-gradient(90deg,var(--line),transparent);}
+.proj-row{display:flex;flex-wrap:wrap;gap:14px 18px;align-items:flex-end;background:var(--panel2);
+  border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin-bottom:14px;}
+.proj-field{display:flex;flex-direction:column;gap:5px;}
+.proj-field label{font-size:11px;color:var(--muted);font-family:'Space Grotesk';font-weight:600;}
+.proj-field input{background:var(--inset);border:1px solid var(--line2);border-radius:9px;color:var(--txt);
+  font-family:'Space Grotesk';font-weight:600;font-size:15px;padding:9px 12px;width:190px;outline:none;transition:border-color .15s;}
+.proj-field input:focus{border-color:var(--accent);}
+.proj-val{display:inline-flex;align-items:center;background:var(--inset);border:1px solid var(--line);
+  border-radius:9px;color:var(--accent3);font-family:'Space Grotesk';font-weight:700;font-size:16px;
+  padding:9px 14px;min-width:190px;letter-spacing:-.01em;}
+.proj-row.locked{border-color:#284a72;background:linear-gradient(180deg,var(--panel2),#0d1b30);}
+.proj-note{font-size:11px;color:var(--muted2);margin-left:auto;max-width:230px;line-height:1.4;align-self:center;}
+.gauge .gfoot{font-family:'Space Grotesk';font-size:11.5px;color:var(--accent3);margin-top:3px;font-weight:600;}
+@media (max-width:980px){ .proj-note{margin-left:0;} }
+/* ---------- Franja de datos colapsable (modo presentación) ---------- */
+.feed-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;gap:12px;}
+.fh-left{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;}
+.fh-title{font-family:'Space Grotesk';font-weight:600;font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);}
+.fh-status{font-size:12px;color:var(--muted2);}
+.fh-status.done{color:var(--ok);}
+.fh-toggle{display:inline-flex;align-items:center;gap:6px;background:var(--panel);border:1px solid var(--line);
+  color:var(--muted);font-family:'Space Grotesk';font-weight:600;font-size:12px;padding:6px 12px;border-radius:9px;cursor:pointer;transition:all .15s;}
+.fh-toggle:hover{color:var(--txt);border-color:var(--line2);}
+.fh-toggle svg{transition:transform .2s;}
+.fh-toggle.collapsed svg{transform:rotate(-90deg);}
+.feed.collapsed{display:none;}
+</style>
+</head>
+<body>
+<div class="shell">
+
+  <header class="top">
+    <div class="seal" aria-hidden="true">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+        <path d="M12 2.5 3.5 7v6c0 5 3.6 8 8.5 8.5 4.9-.5 8.5-3.5 8.5-8.5V7L12 2.5Z" stroke="#93C5FD" stroke-width="1.4"/>
+        <path d="M8 12.5l2.6 2.6L16 9.5" stroke="#60A5FA" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </div>
+    <div class="tt">
+      <div class="eyebrow">MIDES · Subdirección de Comedores Sociales</div>
+      <h1>Tablero de Ejecución — Comedores Sociales</h1>
+      <div class="sub">Mapa nacional, indicadores y gráficas que se actualizan con los libros de Excel que cargue.</div>
+    </div>
+    <div class="spacer"></div>
+    <div class="status">
+      <span class="chip" id="chip-semana"><span class="dot"></span> Cuota por Semana</span>
+      <span class="chip" id="chip-dps"><span class="dot"></span> Ejecución DPS 2026</span>
+      <span class="chip" id="chip-clasif"><span class="dot"></span> Clasificador Global</span>
+    </div>
+  </header>
+
+  <div class="feed-head">
+    <div class="fh-left"><span class="fh-title">Fuentes de datos</span><span class="fh-status" id="feed-status">0 de 3 cargadas</span></div>
+    <button class="fh-toggle" id="feed-toggle" aria-expanded="true"><span id="fh-txt">Ocultar</span>
+      <svg id="fh-chev" width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </button>
+  </div>
+  <section class="feed" id="feed">
+    <label class="drop" id="drop-semana" for="file-semana">
+      <span class="ic" id="ic-semana">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M12 15.5V4m0 0L8 8m4-4 4 4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 15v3.5A1.5 1.5 0 0 0 5.5 20h13a1.5 1.5 0 0 0 1.5-1.5V15" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+      </span>
+      <span class="meta">
+        <span class="tag" id="tag-semana">Alimenta indicadores + gráficas</span>
+        <div class="lbl">Cuota por Semana (integrado)</div>
+        <div class="hint" id="hint-semana">Arrastre aquí el .xlsx, o toque para elegirlo.</div>
+      </span>
+      <input type="file" id="file-semana" accept=".xlsx,.xlsm">
+    </label>
+
+    <label class="drop" id="drop-dps" for="file-dps">
+      <span class="ic" id="ic-dps">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M12 21c4-3.5 6.5-6.7 6.5-10a6.5 6.5 0 1 0-13 0c0 3.3 2.5 6.5 6.5 10Z" stroke="currentColor" stroke-width="1.6"/><circle cx="12" cy="11" r="2.2" stroke="currentColor" stroke-width="1.6"/></svg>
+      </span>
+      <span class="meta">
+        <span class="tag" id="tag-dps">Alimenta el mapa de Guatemala</span>
+        <div class="lbl">Ejecución DPS 2026 (Comedores)</div>
+        <div class="hint" id="hint-dps">Arrastre aquí el .xlsx, o toque para elegirlo.</div>
+      </span>
+      <input type="file" id="file-dps" accept=".xlsx,.xlsm">
+    </label>
+
+    <label class="drop" id="drop-clasif" for="file-clasif">
+      <span class="ic" id="ic-clasif">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><circle cx="9" cy="7" r="2.6" stroke="currentColor" stroke-width="1.5"/><path d="M4 19c0-2.8 2.2-5 5-5s5 2.2 5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><circle cx="17" cy="8.5" r="2" stroke="currentColor" stroke-width="1.4"/><path d="M15 19c0-2.2 1.3-4 3-4.4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+      </span>
+      <span class="meta">
+        <span class="tag" id="tag-clasif">Alimenta el clasificador de población</span>
+        <div class="lbl">Clasificador Global</div>
+        <div class="hint" id="hint-clasif">Arrastre aquí el .xlsx, o toque para elegirlo.</div>
+      </span>
+      <input type="file" id="file-clasif" accept=".xlsx,.xlsm">
+    </label>
+  </section>
+
+  <nav class="tabs" role="tablist">
+    <button class="tab active" id="tab-graf" role="tab">Gráficas</button>
+    <button class="tab" id="tab-clasif" role="tab">Clasificador de población</button>
+    <button class="tab" id="tab-mapa" role="tab">Indicadores y mapa</button>
+  </nav>
+
+  <!-- ============ TAB 1: GRÁFICAS ============ -->
+  <section class="panel show" id="panel-graf" role="tabpanel">
+    <div id="graf-content"></div>
+  </section>
+
+  <!-- ============ TAB: CLASIFICADOR DE POBLACIÓN ============ -->
+  <section class="panel" id="panel-clasif" role="tabpanel">
+    <div id="clasif-content"></div>
+  </section>
+
+  <!-- ============ TAB: MAPA Y VELOCÍMETROS ============ -->
+  <section class="panel" id="panel-mapa" role="tabpanel">
+    <div class="sect-h"><span class="k">Indicadores de ejecución</span><span class="ln"></span></div>
+    <div id="gauges-host"></div>
+
+    <div class="sect-h"><span class="k">Mapa nacional · ejecución anual por departamento</span><span class="ln"></span></div>
+    <div class="maprow">
+      <div class="mapwrap">
+        <div class="mtopbar">
+          <button id="mapback">← Volver al país</button>
+          <div id="maptitle">República de Guatemala</div>
+        </div>
+        <svg id="svgmap" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet"></svg>
+        <div id="maptip"></div>
+        <div class="mlegend">
+          <div class="row"><span class="sw" style="background:#1d4ed8"></span> Mayor ejecución</div>
+          <div class="row"><span class="sw" style="background:#1e3a5f"></span> Menor ejecución</div>
+          <div class="row"><span class="sw" style="background:#242c39;border:1px dashed #79839a"></span> Territorio en reclamo</div>
+          <div class="row" style="margin-top:4px"><span class="mdot mfijo"></span> Fijo &nbsp;<span class="mdot mmovil"></span> Móvil</div>
+        </div>
+        <div class="mnote">Mapa de carácter ilustrativo. Las reclamaciones territoriales (Belice y cayos) están sujetas a procesos internacionales y no constituyen reconocimiento oficial de límites.</div>
+      </div>
+      <aside class="side" id="mapside"></aside>
+    </div>
+  </section>
+
+  <footer class="foot">
+    <b>Fuentes.</b> Indicadores y gráficas semanales: libro Cuota por Semana. Mapa y tendencia anual: libro Ejecución DPS 2026. Clasificador de población: libro Clasificador Global. &nbsp;·&nbsp;
+    Todo el procesamiento ocurre en su navegador; los archivos no se envían a ningún servidor. &nbsp;·&nbsp; Viceministerio de Protección Social del Ministerio de Desarrollo Social.
+  </footer>
+</div>
+<script>
+"use strict";
+/* ============================================================
+   Tablero Comedores Sociales — 100% estático (Cloudflare Pages)
+   Datos geográficos embebidos (22 deptos + territorio en reclamo).
+   ============================================================ */
+const GEO_GT = [{"name":"ALTA VERAPAZ","tipo":"departamento","polys":[[[-89.4109,15.8563],[-89.4285,15.861],[-89.4444,15.8479],[-89.4575,15.8481],[-89.4642,15.8615],[-89.4793,15.861],[-89.5002,15.9226],[-89.5005,16.0417],[-89.5118,16.036],[-89.5284,16.0529],[-89.5494,16.0408],[-89.5475,16.0276],[-89.5659,16.0306],[-89.5826,16.0101],[-89.597,16.019],[-89.5918,16.0071],[-89.5973,16.0141],[-89.6384,16.0132],[-89.6364,16.0005],[-89.6524,15.9734],[-89.6622,15.9815],[-89.6787,15.972],[-89.6887,15.98],[-89.7055,15.9597],[-89.7128,15.9674],[-89.731,15.9649],[-89.7481,15.9507],[-89.7418,15.9441],[-89.7602,15.9208],[-89.7809,15.9221],[-89.7976,15.9079],[-89.8583,15.9044],[-89.8728,15.9189],[-89.8711,15.9343],[-89.897,15.9467],[-89.8872,15.955],[-89.8942,15.9666],[-89.9023,15.9531],[-89.9294,15.9738],[-89.9326,15.9645],[-89.9394,15.972],[-89.9485,15.9669],[-89.9488,15.9782],[-89.9628,15.9814],[-89.9542,15.9918],[-89.9671,15.9876],[-89.962,16.0034],[-89.9824,16.0142],[-89.9819,15.9898],[-89.9923,16.0013],[-90.016,15.9931],[-90.0132,16.0101],[-90.0356,16.0158],[-90.0457,15.9916],[-90.2979,16.0559],[-90.4419,16.0728],[-90.4332,16.0622],[-90.4179,16.0654],[-90.4423,16.0434],[-90.4265,16.0372],[-90.4246,16.022],[-90.4403,16.029],[-90.4466,16.0148],[-90.4722,16.0036],[-90.4773,16.0169],[-90.4896,16.0143],[-90.4993,15.9882],[-90.5117,15.9826],[-90.4992,15.9936],[-90.5016,16.0011],[-90.5234,15.9902],[-90.519,16.002],[-90.5388,16.0033],[-90.5419,15.9953],[-90.5521,16.0029],[-90.5583,15.9936],[-90.5618,16.0027],[-90.5764,15.9961],[-90.5861,16.0143],[-90.6108,16.0126],[-90.5953,16.0202],[-90.601,16.0368],[-90.6181,16.0239],[-90.6369,16.0401],[-90.6691,16.0393],[-90.6836,16.0215],[-90.7014,16.0202],[-90.6945,16.004],[-90.7085,15.9954],[-90.704,15.9737],[-90.735,15.9838],[-90.7382,15.9686],[-90.7613,15.961],[-90.7454,15.9432],[-90.7333,15.9454],[-90.7599,15.8873],[-90.7387,15.8831],[-90.7308,15.86],[-90.7518,15.8347],[-90.7687,15.8306],[-90.7822,15.8048],[-90.7783,15.7969],[-90.8201,15.7481],[-90.8046,15.7414],[-90.793,15.7479],[-90.7786,15.7294],[-90.7976,15.7193],[-90.7837,15.7201],[-90.7709,15.7039],[-90.7905,15.6919],[-90.7931,15.6788],[-90.6891,15.6499],[-90.6557,15.6493],[-90.6598,15.6417],[-90.6306,15.6099],[-90.6417,15.5823],[-90.6183,15.566],[-90.606,15.5046],[-90.6384,15.4834],[-90.6653,15.4335],[-90.6993,15.4376],[-90.7127,15.4141],[-90.703,15.3805],[-90.6872,15.3619],[-90.6018,15.3408],[-90.4802,15.3221],[-90.4785,15.2963],[-90.4755,15.2843],[-90.4003,15.2759],[-90.3788,15.2595],[-90.3336,15.2261],[-90.3208,15.2417],[-90.304,15.252],[-90.2848,15.2928],[-90.2169,15.272],[-90.2012,15.2649],[-90.0545,15.2629],[-89.9346,15.279],[-89.9175,15.3012],[-89.9883,15.1464],[-89.9717,15.1493],[-89.9484,15.1456],[-89.8903,15.1441],[-89.8841,15.1481],[-89.8616,15.1599],[-89.8113,15.1719],[-89.7825,15.171],[-89.7521,15.1479],[-89.7145,15.1479],[-89.6626,15.1225],[-89.6509,15.1553],[-89.6215,15.1709],[-89.5743,15.2469],[-89.5629,15.3018],[-89.5685,15.3097],[-89.5364,15.313],[-89.5445,15.3471],[-89.5121,15.3649],[-89.5235,15.3866],[-89.5155,15.4176],[-89.5327,15.4291],[-89.5189,15.4556],[-89.5322,15.4658],[-89.5488,15.4598],[-89.5903,15.4789],[-89.567,15.5018],[-89.5823,15.5232],[-89.5044,15.6905],[-89.4378,15.8159],[-89.4178,15.8304],[-89.4162,15.8461],[-89.4094,15.8445],[-89.4109,15.8563]]],"centro":[-90.0988,15.6346]},{"name":"SUCHITEPÉQUEZ","tipo":"departamento","polys":[[[-91.1187,14.5153],[-91.1471,14.5524],[-91.1942,14.5627],[-91.2308,14.552],[-91.2553,14.5261],[-91.2586,14.5331],[-91.2686,14.5326],[-91.2877,14.607],[-91.3117,14.6209],[-91.3134,14.6334],[-91.3299,14.6404],[-91.3531,14.6428],[-91.3811,14.6349],[-91.4146,14.6363],[-91.447,14.6041],[-91.4502,14.5995],[-91.4908,14.6261],[-91.4819,14.6604],[-91.4984,14.6996],[-91.5213,14.6843],[-91.5229,14.6687],[-91.5472,14.6545],[-91.5646,14.6225],[-91.5892,14.5359],[-91.5809,14.4433],[-91.6006,14.3562],[-91.5996,14.3436],[-91.5893,14.3383],[-91.6256,14.2628],[-91.6237,14.2068],[-91.6418,14.1919],[-91.6407,14.1719],[-91.6658,14.1367],[-91.6604,14.1272],[-91.6688,14.1246],[-91.5314,14.048],[-91.5316,14.0834],[-91.5063,14.1091],[-91.4871,14.1357],[-91.4854,14.1522],[-91.4479,14.2001],[-91.449,14.2566],[-91.4629,14.2706],[-91.4539,14.2824],[-91.4594,14.3061],[-91.4302,14.2876],[-91.3946,14.3366],[-91.3645,14.3773],[-91.3235,14.3985],[-91.3314,14.3763],[-91.332,14.3224],[-91.2798,14.3144],[-91.2662,14.3362],[-91.256,14.333],[-91.2502,14.301],[-91.1468,14.2859],[-91.1415,14.3145],[-91.1283,14.3364],[-91.1256,14.357],[-91.1365,14.3756],[-91.0984,14.4217],[-91.1026,14.4489],[-91.1259,14.4683],[-91.1228,14.5125],[-91.1187,14.5153]]],"centro":[-91.4081,14.4028]},{"name":"EL PROGRESO","tipo":"departamento","polys":[[[-89.9199,15.1402],[-89.9172,15.0835],[-90.013,15.0697],[-90.0685,15.0413],[-90.116,15.0266],[-90.2134,14.9869],[-90.3144,14.9174],[-90.3212,14.9056],[-90.3032,14.8893],[-90.3091,14.8785],[-90.4042,14.8671],[-90.4032,14.8459],[-90.3469,14.8442],[-90.3246,14.825],[-90.3386,14.8029],[-90.3335,14.7916],[-90.3377,14.7739],[-90.3185,14.7325],[-90.2035,14.6758],[-90.1904,14.6523],[-90.1743,14.7063],[-90.0893,14.7101],[-90.0621,14.7296],[-90.0408,14.7546],[-89.9684,14.7965],[-89.8747,14.8714],[-89.852,14.8797],[-89.8187,14.9071],[-89.8185,14.9326],[-89.8652,15.0216],[-89.8097,15.0488],[-89.8961,15.1403],[-89.9199,15.1402]]],"centro":[-90.082,14.8947]},{"name":"ZACAPA","tipo":"departamento","polys":[[[-89.893,15.1403],[-89.8267,15.0124],[-89.8516,14.9897],[-89.8155,14.9158],[-89.8633,14.8634],[-89.8443,14.8642],[-89.8212,14.8465],[-89.8271,14.8142],[-89.812,14.7916],[-89.7737,14.7653],[-89.7696,14.7512],[-89.7204,14.7509],[-89.7038,14.7871],[-89.7126,14.8183],[-89.7057,14.8456],[-89.6532,14.8751],[-89.5864,14.8554],[-89.5007,14.8637],[-89.4797,14.8955],[-89.4215,14.9055],[-89.3725,14.8953],[-89.3149,14.9109],[-89.2726,14.8958],[-89.253,14.9067],[-89.2204,14.9498],[-89.2,14.9473],[-89.1763,14.9244],[-89.1566,14.9798],[-89.1843,15.0029],[-89.1715,15.0267],[-89.1745,15.0374],[-89.1556,15.053],[-89.1544,15.0688],[-89.1862,15.1066],[-89.1767,15.1155],[-89.1796,15.137],[-89.1954,15.1731],[-89.2185,15.1829],[-89.1751,15.2426],[-89.1766,15.2679],[-89.1874,15.2704],[-89.1922,15.283],[-89.2202,15.276],[-89.2331,15.2962],[-89.2535,15.2837],[-89.2579,15.2978],[-89.2993,15.2917],[-89.3102,15.2726],[-89.3659,15.2752],[-89.3881,15.2579],[-89.3963,15.2367],[-89.4271,15.2135],[-89.5326,15.1761],[-89.566,15.1808],[-89.617,15.1601],[-89.6509,15.1553],[-89.6676,15.1449],[-89.6689,15.1203],[-89.7277,15.1492],[-89.7712,15.1564],[-89.7938,15.1702],[-89.8616,15.1599],[-89.8692,15.1475],[-89.8909,15.1499],[-89.893,15.1403]]],"centro":[-89.5064,15.0381]},{"name":"PETÉN","tipo":"departamento","polys":[[[-89.4109,15.8563],[-89.3984,15.8675],[-89.3911,15.863],[-89.3773,15.906],[-89.3539,15.9206],[-89.2913,15.9134],[-89.2627,15.9197],[-89.2385,15.9114],[-89.2262,15.8961],[-89.1515,17.0963],[-89.2047,17.8156],[-90.9878,17.8118],[-91.0177,17.2511],[-91.4398,17.25],[-91.4273,17.2165],[-91.4099,17.2059],[-91.3744,17.204],[-91.3545,17.1905],[-91.3443,17.1587],[-91.321,17.1831],[-91.2779,17.1792],[-91.266,17.1697],[-91.273,17.1375],[-91.2657,17.1065],[-91.2262,17.0943],[-91.2093,17.0517],[-91.1719,17.0137],[-91.1222,17.0028],[-91.119,16.9766],[-91.0643,16.9248],[-91.0739,16.9118],[-91.065,16.9026],[-91.0056,16.8854],[-90.9863,16.8631],[-90.9851,16.898],[-90.9635,16.9006],[-90.9549,16.8834],[-90.9737,16.8632],[-90.933,16.8586],[-90.9201,16.8209],[-90.8749,16.8228],[-90.8471,16.796],[-90.8031,16.798],[-90.8021,16.776],[-90.7606,16.7615],[-90.7532,16.7485],[-90.7122,16.7251],[-90.7091,16.7046],[-90.6808,16.6868],[-90.6751,16.659],[-90.6577,16.6379],[-90.6544,16.5932],[-90.666,16.5806],[-90.6438,16.5804],[-90.64,16.5957],[-90.6264,16.576],[-90.6481,16.5566],[-90.6454,16.5179],[-90.6125,16.5184],[-90.6077,16.4983],[-90.635,16.488],[-90.6282,16.4774],[-90.5956,16.4911],[-90.5861,16.4699],[-90.5445,16.4817],[-90.5426,16.4649],[-90.5274,16.4591],[-90.5109,16.47],[-90.4964,16.4534],[-90.4788,16.4593],[-90.4834,16.423],[-90.4177,16.4219],[-90.4064,16.4045],[-90.3975,16.4163],[-90.3883,16.4115],[-90.4021,16.3912],[-90.372,16.3724],[-90.3733,16.3605],[-90.3968,16.3726],[-90.412,16.3595],[-90.4099,16.3459],[-90.4023,16.3603],[-90.3826,16.3368],[-90.4008,16.3363],[-90.4125,16.3241],[-90.4161,16.3043],[-90.4388,16.2991],[-90.4336,16.2917],[-90.4408,16.2785],[-90.4241,16.257],[-90.4474,16.2596],[-90.4552,16.2437],[-90.4408,16.247],[-90.4293,16.232],[-90.4546,16.2183],[-90.457,16.2049],[-90.4521,16.1843],[-90.4295,16.1754],[-90.4267,16.1625],[-90.4513,16.1487],[-90.4293,16.1376],[-90.4321,16.1186],[-90.4545,16.1239],[-90.4589,16.1098],[-90.4521,16.0927],[-90.4324,16.1071],[-90.4259,16.1019],[-90.4469,16.0816],[-90.4391,16.0737],[-90.1681,16.031],[-90.0447,15.9916],[-90.0347,16.0156],[-90.0122,16.0092],[-90.0144,15.9921],[-89.9914,16.0012],[-89.9792,15.9931],[-89.9844,16.0122],[-89.9776,16.0132],[-89.9614,16.0021],[-89.9664,15.9868],[-89.9538,15.9915],[-89.9625,15.9798],[-89.9476,15.9769],[-89.9477,15.9664],[-89.9381,15.9718],[-89.9315,15.965],[-89.9284,15.9735],[-89.9002,15.9532],[-89.8995,15.9665],[-89.8917,15.9645],[-89.8873,15.9544],[-89.8963,15.9457],[-89.8704,15.9338],[-89.8717,15.9177],[-89.8573,15.9045],[-89.7934,15.9112],[-89.7772,15.922],[-89.7593,15.9215],[-89.7413,15.9448],[-89.7476,15.9515],[-89.7298,15.9649],[-89.7039,15.96],[-89.688,15.9802],[-89.6769,15.9718],[-89.6609,15.981],[-89.6515,15.9735],[-89.6355,16.0022],[-89.6374,16.0135],[-89.595,16.0136],[-89.5925,16.0069],[-89.594,16.0195],[-89.5826,16.0101],[-89.5651,16.031],[-89.5467,16.0283],[-89.548,16.0418],[-89.5275,16.0528],[-89.5097,16.0354],[-89.5038,16.0454],[-89.5003,16.0401],[-89.4998,15.8444],[-89.478,15.8613],[-89.4632,15.8606],[-89.4557,15.8479],[-89.427,15.8607],[-89.4109,15.8563]]],"centro":[-90.0196,16.978]},{"name":"QUICHÉ","tipo":"departamento","polys":[[[-90.4422,16.074],[-91.1085,16.0706],[-91.1072,16.0524],[-91.119,16.0348],[-91.132,16.0296],[-91.1241,16.0228],[-91.1284,15.9997],[-91.1011,15.9815],[-91.0964,15.9698],[-91.0666,15.9491],[-91.0473,15.9333],[-91.052,15.9155],[-91.0607,15.9145],[-91.1443,15.8329],[-91.1527,15.8314],[-91.1555,15.8088],[-91.1624,15.7964],[-91.1402,15.7754],[-91.1575,15.7508],[-91.1595,15.7134],[-91.1906,15.6678],[-91.2384,15.6256],[-91.2629,15.6185],[-91.2755,15.6005],[-91.2715,15.5845],[-91.3046,15.5593],[-91.3134,15.5208],[-91.3152,15.4635],[-91.2796,15.4196],[-91.2341,15.3879],[-91.1672,15.3883],[-91.1492,15.3716],[-91.1838,15.3172],[-91.196,15.2855],[-91.2464,15.2781],[-91.2653,15.2689],[-91.3007,15.2761],[-91.3234,15.2605],[-91.3109,15.2439],[-91.3115,15.1998],[-91.2798,15.1607],[-91.2602,15.1571],[-91.2062,15.1087],[-91.2388,15.1076],[-91.259,15.1194],[-91.2637,15.0217],[-91.2392,14.9844],[-91.2338,14.9753],[-91.224,14.9416],[-91.1739,14.8926],[-91.1575,14.8833],[-91.1439,14.8625],[-91.1306,14.8633],[-91.0487,14.8089],[-91.0248,14.8264],[-91.0459,14.8458],[-91.0213,14.8797],[-91.025,14.9077],[-91.0115,14.9321],[-90.9974,14.9384],[-90.9184,14.9197],[-90.8718,14.936],[-90.7858,14.9184],[-90.769,14.9273],[-90.7423,14.9152],[-90.6907,14.9093],[-90.6508,14.885],[-90.6246,14.887],[-90.6149,14.9073],[-90.6604,14.9642],[-90.6556,14.997],[-90.7787,15.1066],[-90.8058,15.1536],[-90.8035,15.2324],[-90.789,15.2348],[-90.7644,15.2216],[-90.7286,15.205],[-90.6274,15.2092],[-90.596,15.2037],[-90.5866,15.2125],[-90.5373,15.2069],[-90.4906,15.2695],[-90.4778,15.3109],[-90.4994,15.3326],[-90.6486,15.3499],[-90.692,15.3648],[-90.7094,15.3898],[-90.704,15.429],[-90.6915,15.4392],[-90.6569,15.4392],[-90.6369,15.4859],[-90.6046,15.5081],[-90.6226,15.5739],[-90.6424,15.587],[-90.6308,15.612],[-90.6607,15.6432],[-90.6605,15.65],[-90.6919,15.6501],[-90.7938,15.6791],[-90.7899,15.6925],[-90.7711,15.7055],[-90.7853,15.721],[-90.7973,15.7205],[-90.7789,15.7307],[-90.7947,15.7486],[-90.8065,15.7414],[-90.8204,15.7502],[-90.7775,15.7979],[-90.782,15.8067],[-90.7677,15.8315],[-90.7507,15.8356],[-90.7302,15.8614],[-90.7408,15.8847],[-90.7597,15.8894],[-90.7333,15.9471],[-90.7464,15.9438],[-90.7611,15.9627],[-90.7369,15.9702],[-90.7332,15.9843],[-90.7025,15.9753],[-90.708,15.9962],[-90.6951,15.9971],[-90.6943,16.0062],[-90.7009,16.0205],[-90.6819,16.0224],[-90.6679,16.0395],[-90.6341,16.0399],[-90.6165,16.0235],[-90.5981,16.0365],[-90.5961,16.0185],[-90.6092,16.0113],[-90.5841,16.0136],[-90.5759,15.9957],[-90.5597,16.0021],[-90.5573,15.9935],[-90.5498,16.0034],[-90.5405,15.9956],[-90.5363,16.0045],[-90.5176,16.0014],[-90.522,15.99],[-90.5003,16.0001],[-90.5104,15.9829],[-90.4981,15.9898],[-90.4838,16.0176],[-90.47,16.0038],[-90.4444,16.0165],[-90.4394,16.0303],[-90.4236,16.0228],[-90.4292,16.0401],[-90.4422,16.0458],[-90.4302,16.048],[-90.4186,16.0682],[-90.4362,16.0628],[-90.4422,16.074]]],"centro":[-90.9404,15.4475]},{"name":"CHIQUIMULA","tipo":"departamento","polys":[[[-89.7204,14.7509],[-89.6609,14.7534],[-89.6555,14.7044],[-89.6488,14.702],[-89.6724,14.5979],[-89.694,14.5571],[-89.6396,14.5633],[-89.5642,14.5129],[-89.5057,14.5079],[-89.5133,14.4855],[-89.4993,14.4757],[-89.5018,14.4475],[-89.522,14.4278],[-89.5103,14.4075],[-89.47,14.4294],[-89.4342,14.4124],[-89.3926,14.451],[-89.3849,14.4277],[-89.3789,14.4369],[-89.3553,14.4215],[-89.3495,14.4386],[-89.3555,14.4688],[-89.3019,14.4957],[-89.3052,14.5071],[-89.2879,14.5165],[-89.2836,14.5329],[-89.2388,14.5847],[-89.1672,14.5719],[-89.1534,14.5847],[-89.1484,14.6116],[-89.1554,14.6178],[-89.1476,14.6265],[-89.1567,14.6718],[-89.1323,14.7122],[-89.1661,14.7374],[-89.1697,14.7747],[-89.2252,14.8501],[-89.2274,14.8829],[-89.1793,14.918],[-89.2036,14.9484],[-89.2256,14.9478],[-89.2593,14.9004],[-89.2812,14.8943],[-89.3246,14.9115],[-89.384,14.8956],[-89.4359,14.9026],[-89.4849,14.893],[-89.5062,14.8611],[-89.5893,14.8552],[-89.669,14.8756],[-89.7062,14.8437],[-89.7127,14.8173],[-89.7031,14.7847],[-89.7204,14.7509]]],"centro":[-89.4226,14.6902]},{"name":"SACATEPÉQUEZ","tipo":"departamento","polys":[[[-90.6505,14.4524],[-90.6673,14.5005],[-90.6549,14.5534],[-90.656,14.5564],[-90.6423,14.5644],[-90.6633,14.5766],[-90.6615,14.5882],[-90.6316,14.5768],[-90.6233,14.5681],[-90.6213,14.5862],[-90.6045,14.5918],[-90.6335,14.614],[-90.6281,14.6256],[-90.631,14.6533],[-90.6393,14.6623],[-90.6675,14.6705],[-90.6962,14.7153],[-90.7269,14.7005],[-90.7549,14.72],[-90.7699,14.6879],[-90.7604,14.6575],[-90.7666,14.6458],[-90.7828,14.632],[-90.7889,14.6111],[-90.8151,14.5581],[-90.8588,14.5401],[-90.8741,14.5034],[-90.8675,14.465],[-90.8342,14.43],[-90.8025,14.3831],[-90.7815,14.4312],[-90.7709,14.4329],[-90.6697,14.4547],[-90.6505,14.4524]]],"centro":[-90.7446,14.5548]},{"name":"GUATEMALA","tipo":"departamento","polys":[[[-90.3942,14.8744],[-90.4071,14.9096],[-90.4248,14.915],[-90.4439,14.8826],[-90.4747,14.8793],[-90.494,14.8953],[-90.5794,14.8695],[-90.6264,14.873],[-90.6923,14.8271],[-90.6923,14.7975],[-90.7595,14.7354],[-90.7115,14.6963],[-90.6777,14.7066],[-90.6609,14.6681],[-90.6315,14.6567],[-90.6343,14.6263],[-90.6266,14.6202],[-90.6252,14.5984],[-90.6034,14.5877],[-90.6243,14.5794],[-90.6275,14.5675],[-90.6531,14.5895],[-90.6637,14.584],[-90.6441,14.5586],[-90.6551,14.5539],[-90.6691,14.4753],[-90.6164,14.4344],[-90.5905,14.406],[-90.5948,14.3833],[-90.6065,14.3455],[-90.5775,14.2988],[-90.5663,14.2785],[-90.571,14.2571],[-90.5504,14.2747],[-90.5122,14.2908],[-90.4323,14.3425],[-90.4371,14.4128],[-90.4147,14.4461],[-90.407,14.4811],[-90.337,14.4961],[-90.327,14.4708],[-90.2978,14.5133],[-90.2725,14.5281],[-90.2591,14.5622],[-90.2604,14.6086],[-90.2154,14.6447],[-90.2124,14.6657],[-90.2041,14.6821],[-90.2406,14.702],[-90.2919,14.7183],[-90.3218,14.7361],[-90.3388,14.7787],[-90.3326,14.7977],[-90.3363,14.809],[-90.3272,14.8293],[-90.3519,14.8459],[-90.4033,14.8462],[-90.4042,14.8671],[-90.3942,14.8744]]],"centro":[-90.4891,14.6278]},{"name":"IZABAL","tipo":"departamento","polys":[[[-88.6034,15.7052],[-88.6034,15.7052]],[[-89.6269,15.1615],[-89.5631,15.1813],[-89.5449,15.1735],[-89.4662,15.1962],[-89.415,15.2206],[-89.3659,15.2752],[-89.3074,15.2739],[-89.2972,15.2925],[-89.2541,15.2973],[-89.2503,15.2832],[-89.2256,15.2932],[-89.2137,15.2734],[-89.1879,15.2822],[-89.1849,15.2679],[-89.1756,15.2663],[-89.1746,15.2086],[-89.2186,15.1819],[-89.1948,15.1717],[-89.1794,15.1363],[-89.1768,15.1151],[-89.1857,15.1055],[-89.1602,15.0722],[-88.9743,15.1361],[-88.7593,15.2943],[-88.6223,15.3967],[-88.5685,15.4289],[-88.5597,15.4455],[-88.3445,15.6186],[-88.3235,15.652],[-88.3245,15.6725],[-88.3118,15.6802],[-88.3037,15.6715],[-88.2816,15.6754],[-88.2832,15.6923],[-88.274,15.6852],[-88.2659,15.6907],[-88.2635,15.6818],[-88.2616,15.6953],[-88.2484,15.6887],[-88.2425,15.7089],[-88.2504,15.7211],[-88.2282,15.7236],[-88.2624,15.7367],[-88.3289,15.7909],[-88.4558,15.8624],[-88.5559,15.9448],[-88.5958,15.9628],[-88.6218,15.9634],[-88.6086,15.9345],[-88.5647,15.9125],[-88.5474,15.8787],[-88.5108,15.8708],[-88.5068,15.8569],[-88.4914,15.8494],[-88.4999,15.8324],[-88.5449,15.8469],[-88.5527,15.8358],[-88.5638,15.8471],[-88.5627,15.8247],[-88.5586,15.8278],[-88.5528,15.8129],[-88.5675,15.7803],[-88.5839,15.7606],[-88.5752,15.7582],[-88.5803,15.7459],[-88.6056,15.7333],[-88.5949,15.7097],[-88.6018,15.6989],[-88.6453,15.697],[-88.6464,15.7149],[-88.6342,15.7326],[-88.6261,15.7318],[-88.634,15.7434],[-88.6246,15.7433],[-88.6281,15.7524],[-88.7278,15.8152],[-88.7798,15.8004],[-88.7715,15.7888],[-88.7768,15.7733],[-88.7908,15.7815],[-88.8046,15.7707],[-88.8302,15.7695],[-88.825,15.7653],[-88.837,15.7636],[-88.8423,15.7504],[-88.8479,15.7536],[-88.8443,15.7419],[-88.8817,15.706],[-88.8903,15.6843],[-88.937,15.694],[-88.951,15.6676],[-88.9577,15.6736],[-88.9927,15.6636],[-88.9972,15.6501],[-88.9814,15.6204],[-88.9923,15.6079],[-89.004,15.6068],[-89.0049,15.5888],[-88.9868,15.5557],[-88.9836,15.508],[-89.0218,15.4843],[-89.0368,15.4613],[-89.0933,15.4169],[-89.1117,15.4173],[-89.1297,15.4056],[-89.2608,15.4153],[-89.2688,15.4064],[-89.2472,15.4136],[-89.2452,15.4066],[-89.2634,15.3973],[-89.2735,15.3723],[-89.2905,15.369],[-89.3067,15.3532],[-89.336,15.3733],[-89.3409,15.3928],[-89.3248,15.4033],[-89.3315,15.4178],[-89.3425,15.4123],[-89.3218,15.4277],[-89.3469,15.4595],[-89.3648,15.4502],[-89.3497,15.4633],[-89.3551,15.4702],[-89.3679,15.4595],[-89.372,15.4701],[-89.3778,15.4561],[-89.3956,15.4512],[-89.3854,15.4622],[-89.3922,15.4729],[-89.4115,15.4543],[-89.4029,15.4664],[-89.414,15.4674],[-89.3905,15.4789],[-89.373,15.5079],[-89.3103,15.5305],[-89.2975,15.5169],[-89.2663,15.5203],[-89.2454,15.5438],[-89.2432,15.5629],[-89.2241,15.5715],[-89.1996,15.568],[-89.1778,15.5787],[-89.1518,15.5637],[-89.1312,15.5691],[-89.1266,15.5786],[-89.096,15.5772],[-89.0701,15.5906],[-89.0507,15.6166],[-88.9936,15.6355],[-89.004,15.6414],[-89.0001,15.6675],[-88.951,15.6843],[-88.9425,15.6955],[-88.95,15.7112],[-88.9243,15.7219],[-88.9277,15.7334],[-88.9087,15.7299],[-88.8763,15.7533],[-88.8891,15.7408],[-88.8725,15.7471],[-88.8628,15.7797],[-88.8478,15.7866],[-88.8307,15.7903],[-88.8094,15.7727],[-88.7912,15.7835],[-88.7776,15.7766],[-88.7742,15.7911],[-88.7812,15.8015],[-88.7643,15.8055],[-88.7477,15.8271],[-88.829,15.8721],[-88.8379,15.8629],[-88.8837,15.8617],[-88.9166,15.8941],[-88.9578,15.8872],[-88.9954,15.9025],[-89.0205,15.8943],[-89.0194,15.9093],[-89.0416,15.9135],[-89.0504,15.9011],[-89.0558,15.916],[-89.0642,15.8994],[-89.0745,15.9085],[-89.0799,15.8973],[-89.1034,15.9117],[-89.1168,15.9049],[-89.1143,15.896],[-89.1336,15.9067],[-89.1505,15.8961],[-89.1764,15.9128],[-89.1872,15.9074],[-89.1876,15.8974],[-89.2103,15.8969],[-89.2217,15.8854],[-89.2354,15.9094],[-89.2659,15.9203],[-89.2922,15.9135],[-89.3693,15.914],[-89.3901,15.88],[-89.384,15.8715],[-89.3916,15.873],[-89.3946,15.8613],[-89.4029,15.8659],[-89.4182,15.8299],[-89.4655,15.7636],[-89.5365,15.6353],[-89.5829,15.5214],[-89.5687,15.4973],[-89.5893,15.478],[-89.5424,15.4561],[-89.5281,15.4638],[-89.5166,15.4523],[-89.5329,15.4239],[-89.5142,15.4155],[-89.5244,15.3801],[-89.5135,15.3613],[-89.5473,15.3421],[-89.5396,15.3103],[-89.5687,15.3095],[-89.563,15.3013],[-89.5798,15.2361],[-89.6269,15.1615]]],"centro":[-88.9944,15.5584]},{"name":"JALAPA","tipo":"departamento","polys":[[[-90.2035,14.6758],[-90.2141,14.6561],[-90.2195,14.6358],[-90.2674,14.6013],[-90.2628,14.5479],[-90.2635,14.508],[-90.2441,14.4716],[-90.1288,14.4968],[-90.0838,14.4538],[-90.0329,14.4303],[-89.9825,14.4349],[-89.9796,14.4512],[-89.8943,14.4411],[-89.8839,14.4618],[-89.8487,14.4882],[-89.8336,14.5142],[-89.8203,14.5135],[-89.7884,14.4815],[-89.7016,14.4909],[-89.6889,14.5168],[-89.682,14.5436],[-89.6939,14.5572],[-89.6634,14.6243],[-89.6508,14.6612],[-89.6555,14.7044],[-89.6703,14.7572],[-89.7482,14.7422],[-89.7697,14.7513],[-89.7769,14.7662],[-89.8042,14.7839],[-89.8272,14.8143],[-89.8206,14.8458],[-89.8447,14.8645],[-89.8747,14.8714],[-89.9672,14.7982],[-90.0408,14.7546],[-90.0621,14.7296],[-90.0893,14.7101],[-90.1743,14.7063],[-90.1821,14.6924],[-90.2003,14.6682],[-90.2035,14.6758]]],"centro":[-89.9421,14.6226]},{"name":"SAN MARCOS","tipo":"departamento","polys":[[[-91.5692,15.2244],[-91.5812,15.2333],[-91.6294,15.2388],[-91.6687,15.2958],[-91.7089,15.3373],[-91.7429,15.3427],[-91.8553,15.3466],[-91.8812,15.3613],[-91.9599,15.3159],[-92.0099,15.2651],[-92.0774,15.2825],[-92.0801,15.3976],[-92.1074,15.4073],[-92.1178,15.4228],[-92.2025,15.2509],[-92.0598,15.0683],[-92.0724,15.0608],[-92.0694,15.0463],[-92.0778,15.0448],[-92.0857,15.0206],[-92.1004,15.0094],[-92.1316,15.0115],[-92.1507,14.9861],[-92.1373,14.8876],[-92.1494,14.8676],[-92.1812,14.8468],[-92.1827,14.8286],[-92.1587,14.7678],[-92.1695,14.7447],[-92.1473,14.7152],[-92.1452,14.6619],[-92.1803,14.6197],[-92.175,14.61],[-92.185,14.5738],[-92.2154,14.5547],[-92.223,14.5298],[-92.1631,14.4873],[-92.1431,14.496],[-92.1317,14.5092],[-92.1146,14.5047],[-92.1037,14.5311],[-92.0515,14.5667],[-92.0706,14.593],[-92.0877,14.5922],[-92.1391,14.6253],[-92.0503,14.707],[-92.0098,14.7135],[-91.9562,14.7127],[-91.9272,14.7269],[-91.8999,14.7166],[-91.8373,14.7166],[-91.7909,14.7421],[-91.7796,14.7821],[-91.7823,14.8151],[-91.7542,14.8767],[-91.7127,14.9033],[-91.7173,14.9235],[-91.6772,14.9611],[-91.6654,15.0568],[-91.6958,15.0901],[-91.7006,15.1128],[-91.6627,15.1469],[-91.6207,15.1523],[-91.5829,15.18],[-91.5692,15.2244]]],"centro":[-91.9315,15.0188]},{"name":"HUEHUETENANGO","tipo":"departamento","polys":[[[-91.1078,16.0734],[-91.8678,15.8425],[-92.1162,15.4229],[-92.0996,15.4024],[-92.0779,15.3925],[-92.0769,15.2777],[-91.9931,15.2806],[-91.9397,15.3185],[-91.8614,15.3502],[-91.7947,15.3287],[-91.751,15.3406],[-91.7293,15.3425],[-91.7018,15.3284],[-91.6444,15.264],[-91.6289,15.2384],[-91.5799,15.2327],[-91.513,15.1554],[-91.5103,15.1451],[-91.3882,15.1373],[-91.3773,15.2112],[-91.3543,15.2296],[-91.3252,15.2379],[-91.3134,15.2727],[-91.2819,15.2801],[-91.2637,15.2688],[-91.2193,15.2863],[-91.1843,15.3002],[-91.175,15.339],[-91.1598,15.3773],[-91.2184,15.3876],[-91.2796,15.4196],[-91.3126,15.4549],[-91.3084,15.549],[-91.2755,15.6005],[-91.2488,15.6241],[-91.2295,15.6297],[-91.1906,15.6678],[-91.1677,15.6972],[-91.1402,15.7754],[-91.1462,15.7841],[-91.1675,15.8015],[-91.1476,15.8206],[-91.1443,15.8329],[-91.0696,15.8828],[-91.0671,15.9466],[-91.061,15.9685],[-91.0981,15.9721],[-91.1104,15.9957],[-91.1288,16.0025],[-91.1307,16.0265],[-91.1259,16.0345],[-91.1113,16.061],[-91.1078,16.0734]]],"centro":[-91.5598,15.6486]},{"name":"TOTONICAPÁN","tipo":"departamento","polys":[[[-91.3192,15.2537],[-91.3331,15.2327],[-91.3613,15.2261],[-91.3816,15.2099],[-91.4662,15.134],[-91.5116,15.1454],[-91.5478,15.1054],[-91.5548,14.9383],[-91.524,14.9432],[-91.4935,14.8782],[-91.4722,14.8829],[-91.4636,14.9],[-91.4385,14.8898],[-91.3629,14.8477],[-91.3054,14.8668],[-91.2893,14.861],[-91.2622,14.8414],[-91.2144,14.8582],[-91.1772,14.8952],[-91.2388,14.9456],[-91.2377,14.9705],[-91.2329,14.9775],[-91.2392,14.9844],[-91.2567,14.9838],[-91.2639,15.0496],[-91.2558,15.1247],[-91.2441,15.1093],[-91.2245,15.1029],[-91.2133,15.101],[-91.2063,15.1127],[-91.2304,15.1264],[-91.2669,15.1614],[-91.2903,15.1679],[-91.3187,15.2014],[-91.3109,15.244],[-91.3192,15.2537]]],"centro":[-91.3771,15.0134]},{"name":"QUETZALTENANGO","tipo":"departamento","polys":[[[-91.4875,14.7109],[-91.4602,14.7386],[-91.4457,14.7439],[-91.4435,14.7641],[-91.4041,14.8219],[-91.4421,14.8918],[-91.4656,14.9005],[-91.4745,14.8789],[-91.4966,14.8805],[-91.5268,14.9463],[-91.5327,14.9581],[-91.5218,15.136],[-91.513,15.1554],[-91.5684,15.2241],[-91.577,15.1992],[-91.5857,15.1714],[-91.6556,15.1472],[-91.6759,15.1433],[-91.7024,15.1097],[-91.6932,15.0819],[-91.6652,15.0298],[-91.6778,14.951],[-91.7227,14.9153],[-91.7204,14.8967],[-91.7584,14.8708],[-91.7823,14.8074],[-91.7834,14.7715],[-91.7953,14.7364],[-91.8467,14.7146],[-91.9018,14.7172],[-91.9316,14.728],[-91.9638,14.7125],[-92.031,14.7145],[-92.0566,14.7],[-92.0765,14.6838],[-92.0886,14.6793],[-92.1034,14.6594],[-92.1373,14.6155],[-92.0868,14.592],[-92.0543,14.5869],[-92.0377,14.56],[-91.9957,14.5382],[-91.972,14.5368],[-91.9091,14.5087],[-91.8844,14.5064],[-91.8726,14.5135],[-91.8327,14.4938],[-91.8065,14.4943],[-91.784,14.5671],[-91.7807,14.5948],[-91.7552,14.5959],[-91.7523,14.6411],[-91.7336,14.6716],[-91.7149,14.6594],[-91.703,14.6903],[-91.6802,14.7102],[-91.6656,14.7127],[-91.6804,14.6393],[-91.6663,14.6458],[-91.6531,14.6102],[-91.6114,14.6533],[-91.6077,14.6268],[-91.5338,14.6866],[-91.5268,14.6806],[-91.5074,14.6904],[-91.4875,14.7109]]],"centro":[-91.7141,14.7872]},{"name":"RETALHULEU","tipo":"departamento","polys":[[[-91.5225,14.6824],[-91.5315,14.6819],[-91.5409,14.6778],[-91.6101,14.6268],[-91.6114,14.6533],[-91.6272,14.6521],[-91.6481,14.6147],[-91.6557,14.6168],[-91.6681,14.6507],[-91.6814,14.644],[-91.6675,14.7143],[-91.6909,14.7026],[-91.7068,14.6831],[-91.7163,14.658],[-91.7421,14.6568],[-91.7549,14.629],[-91.7807,14.5948],[-91.7853,14.5846],[-91.7882,14.543],[-91.8078,14.4941],[-91.8347,14.4945],[-91.8745,14.5138],[-91.886,14.5062],[-91.9113,14.5094],[-92.0505,14.5652],[-92.1049,14.5292],[-92.115,14.5042],[-92.1336,14.5099],[-92.1457,14.4932],[-92.1624,14.4852],[-91.9957,14.3639],[-91.8982,14.2798],[-91.8758,14.2948],[-91.8951,14.2779],[-91.8775,14.2727],[-91.8825,14.2691],[-91.8751,14.2644],[-91.8651,14.2726],[-91.8616,14.2538],[-91.8542,14.2746],[-91.8562,14.2532],[-91.8347,14.2642],[-91.8432,14.2536],[-91.8558,14.2492],[-91.7888,14.1921],[-91.6642,14.1241],[-91.6634,14.1402],[-91.6405,14.1724],[-91.6417,14.1921],[-91.6218,14.212],[-91.6192,14.2855],[-91.5886,14.3399],[-91.6004,14.3443],[-91.6008,14.3571],[-91.5809,14.4437],[-91.5888,14.538],[-91.5613,14.6335],[-91.5453,14.656],[-91.5174,14.6755],[-91.5225,14.6824]]],"centro":[-91.7888,14.4181]},{"name":"BAJA VERAPAZ","tipo":"departamento","polys":[[[-90.4849,15.2832],[-90.5317,15.2119],[-90.5551,15.2022],[-90.5918,15.2068],[-90.6042,15.1993],[-90.6352,15.2071],[-90.7361,15.2124],[-90.7783,15.222],[-90.8035,15.2324],[-90.8058,15.1536],[-90.6556,14.997],[-90.6551,14.9906],[-90.6585,14.9606],[-90.6409,14.9384],[-90.634,14.923],[-90.6166,14.9148],[-90.6249,14.8878],[-90.6166,14.8751],[-90.6064,14.88],[-90.5783,14.8697],[-90.493,14.8955],[-90.4734,14.8789],[-90.4403,14.8837],[-90.4236,14.915],[-90.4066,14.909],[-90.3926,14.8738],[-90.3139,14.8763],[-90.3032,14.8893],[-90.3201,14.8991],[-90.3157,14.9162],[-90.1206,15.0271],[-90.0734,15.0427],[-90.045,15.0519],[-90.0023,15.0755],[-89.9039,15.0969],[-89.935,15.1423],[-89.9713,15.1494],[-89.9883,15.1464],[-89.9347,15.2312],[-89.9176,15.3012],[-89.9493,15.274],[-90.0771,15.2621],[-90.2169,15.272],[-90.2774,15.2897],[-90.2931,15.2908],[-90.3087,15.2443],[-90.3283,15.2318],[-90.3336,15.2261],[-90.3788,15.2595],[-90.4035,15.2724],[-90.4061,15.2794],[-90.4849,15.2832]]],"centro":[-90.3699,15.1012]},{"name":"SOLOLÁ","tipo":"departamento","polys":[[[-91.1187,14.5153],[-91.1167,14.586],[-91.1032,14.6305],[-91.0786,14.6831],[-91.084,14.7309],[-91.0773,14.7375],[-91.0694,14.7911],[-91.1334,14.8675],[-91.1514,14.8671],[-91.1556,14.8723],[-91.1629,14.8903],[-91.2088,14.8769],[-91.2459,14.8488],[-91.2731,14.8584],[-91.3,14.8672],[-91.3567,14.8565],[-91.4069,14.8006],[-91.4454,14.7586],[-91.448,14.7401],[-91.4875,14.7109],[-91.4824,14.635],[-91.5056,14.6012],[-91.4465,14.5971],[-91.4315,14.6251],[-91.408,14.6416],[-91.3745,14.6352],[-91.3299,14.6404],[-91.31,14.6224],[-91.303,14.6129],[-91.2822,14.5972],[-91.264,14.5309],[-91.2557,14.532],[-91.2526,14.5272],[-91.2505,14.5382],[-91.2236,14.5563],[-91.1789,14.561],[-91.1317,14.5394],[-91.1187,14.5153]]],"centro":[-91.2589,14.7166]},{"name":"ESCUINTLA","tipo":"departamento","polys":[[[-91.5357,14.0445],[-91.3062,13.9509],[-91.1831,13.9259],[-90.9106,13.9114],[-90.8095,13.9192],[-90.8148,13.924],[-90.8054,13.9263],[-90.8038,13.9176],[-90.7846,13.9151],[-90.8021,13.9232],[-90.7884,13.9293],[-90.7842,13.9182],[-90.7007,13.9283],[-90.6232,13.925],[-90.5903,14.0705],[-90.5839,14.0935],[-90.554,14.1222],[-90.5836,14.1368],[-90.5914,14.1542],[-90.5666,14.1565],[-90.5192,14.2024],[-90.5373,14.2078],[-90.5623,14.1961],[-90.602,14.2075],[-90.5666,14.2813],[-90.6065,14.3455],[-90.5985,14.3768],[-90.5905,14.406],[-90.6164,14.4344],[-90.6697,14.4547],[-90.7429,14.4604],[-90.776,14.4293],[-90.7906,14.4121],[-90.808,14.3843],[-90.8528,14.45],[-90.8808,14.4702],[-90.8957,14.446],[-90.9472,14.4093],[-90.9737,14.3769],[-90.9779,14.4115],[-91.0047,14.4355],[-91.0322,14.4085],[-91.0339,14.4264],[-91.059,14.4192],[-91.0901,14.4057],[-91.113,14.4043],[-91.1361,14.3735],[-91.1255,14.3567],[-91.1291,14.3292],[-91.1409,14.3117],[-91.1529,14.287],[-91.2647,14.3043],[-91.2662,14.3362],[-91.32,14.3179],[-91.3442,14.3237],[-91.3271,14.3981],[-91.3743,14.3718],[-91.4113,14.2899],[-91.4302,14.2876],[-91.4363,14.3226],[-91.4604,14.3046],[-91.454,14.2807],[-91.4628,14.2697],[-91.4486,14.2548],[-91.4489,14.1971],[-91.486,14.151],[-91.4909,14.1304],[-91.5137,14.099],[-91.5328,14.081],[-91.5357,14.0445]]],"centro":[-90.9962,14.1637]},{"name":"CHIMALTENANGO","tipo":"departamento","polys":[[[-91.1007,14.4124],[-91.0806,14.4057],[-91.0437,14.428],[-91.0381,14.4239],[-91.0177,14.4122],[-90.9967,14.4368],[-90.9774,14.3975],[-90.9673,14.3803],[-90.9265,14.4266],[-90.8891,14.456],[-90.8616,14.5333],[-90.8376,14.5603],[-90.8074,14.5664],[-90.787,14.6274],[-90.777,14.6285],[-90.7604,14.6575],[-90.77,14.6919],[-90.7562,14.7256],[-90.7511,14.7464],[-90.6852,14.8053],[-90.6934,14.8204],[-90.6844,14.8379],[-90.6469,14.8621],[-90.6196,14.8775],[-90.6224,14.8862],[-90.6542,14.8857],[-90.6918,14.9099],[-90.7431,14.9152],[-90.7702,14.9278],[-90.787,14.9189],[-90.8724,14.9359],[-90.9194,14.9199],[-90.9971,14.9385],[-91.0117,14.9318],[-91.0262,14.904],[-91.0215,14.8795],[-91.046,14.8453],[-91.0284,14.8215],[-91.0766,14.7917],[-91.0723,14.7809],[-91.0761,14.7267],[-91.0848,14.726],[-91.081,14.6782],[-91.1096,14.6235],[-91.1168,14.5843],[-91.1154,14.5287],[-91.1244,14.4969],[-91.1068,14.4521],[-91.095,14.4398],[-91.1007,14.4124]]],"centro":[-90.921,14.6929]},{"name":"JUTIAPA","tipo":"departamento","polys":[[[-90.1943,13.7718],[-90.1943,13.7718]],[[-89.5481,14.2757],[-89.5481,14.2757]],[[-89.6817,14.5307],[-89.7016,14.4909],[-89.7209,14.4813],[-89.7953,14.483],[-89.7924,14.4911],[-89.8058,14.4912],[-89.8206,14.5137],[-89.8342,14.5141],[-89.8596,14.4698],[-89.8839,14.4618],[-89.8919,14.44],[-89.9359,14.4613],[-89.9812,14.4476],[-90.0298,14.4304],[-90.0496,14.4199],[-90.0615,14.3859],[-90.1191,14.3495],[-90.1209,14.334],[-90.1739,14.332],[-90.2002,14.32],[-90.1991,14.256],[-90.0941,14.214],[-90.0742,14.2012],[-90.0627,14.1817],[-90.0799,14.1594],[-90.0663,14.0909],[-90.0993,14.0676],[-90.1155,14.0487],[-90.1166,14.0033],[-90.1214,13.9959],[-90.1493,13.963],[-90.1623,13.9738],[-90.1674,13.9775],[-90.1666,13.9905],[-90.2004,13.9952],[-90.2265,14.0113],[-90.2982,14.005],[-90.2794,13.9498],[-90.2595,13.935],[-90.2511,13.9281],[-90.2511,13.9061],[-90.2449,13.8508],[-90.2639,13.8319],[-90.2574,13.8064],[-90.2543,13.8039],[-90.2579,13.7981],[-90.2,13.775],[-90.1872,13.777],[-90.1793,13.7698],[-90.1872,13.7683],[-90.1371,13.7469],[-90.1168,13.7494],[-90.1152,13.7402],[-90.1023,13.7409],[-90.093,13.7551],[-90.1017,13.7576],[-90.1072,13.7807],[-90.115,13.7764],[-90.1182,13.785],[-90.1073,13.8097],[-90.1118,13.8351],[-90.0802,13.8777],[-90.0359,13.8981],[-90.0371,13.9177],[-90.0288,13.9194],[-90.0228,13.9392],[-89.9382,13.9873],[-89.9278,14.0067],[-89.9071,14.015],[-89.8923,14.0434],[-89.861,14.0421],[-89.8557,14.0586],[-89.8164,14.0629],[-89.7783,14.0336],[-89.7373,14.032],[-89.7458,14.0641],[-89.7219,14.1248],[-89.6663,14.1855],[-89.6287,14.2042],[-89.5815,14.203],[-89.5486,14.2228],[-89.5253,14.2203],[-89.5236,14.2417],[-89.5504,14.2711],[-89.547,14.2958],[-89.5684,14.3151],[-89.5926,14.3113],[-89.5915,14.3333],[-89.5868,14.3469],[-89.5645,14.3513],[-89.5806,14.3752],[-89.5703,14.4166],[-89.5414,14.4141],[-89.5296,14.3796],[-89.5115,14.3987],[-89.5218,14.4284],[-89.5015,14.4484],[-89.4998,14.4769],[-89.5137,14.4868],[-89.506,14.5084],[-89.6149,14.5514],[-89.6817,14.5307]]],"centro":[-89.8966,14.2102]},{"name":"SANTA ROSA","tipo":"departamento","polys":[[[-90.5729,14.2566],[-90.602,14.2075],[-90.5745,14.2027],[-90.5451,14.2012],[-90.5192,14.2024],[-90.5101,14.1985],[-90.5914,14.1542],[-90.5836,14.1368],[-90.554,14.1222],[-90.5616,14.0982],[-90.5919,14.083],[-90.6193,14.0168],[-90.6042,13.9186],[-90.5292,13.9028],[-90.3507,13.8379],[-90.3417,13.8399],[-90.3488,13.8378],[-90.2615,13.8049],[-90.2565,13.8056],[-90.2603,13.8383],[-90.2443,13.8614],[-90.2538,13.8958],[-90.2517,13.9201],[-90.253,13.9302],[-90.2717,13.9367],[-90.2932,13.9748],[-90.2928,14.011],[-90.2133,14.0081],[-90.1829,13.9898],[-90.1631,13.9878],[-90.167,13.9739],[-90.1501,13.979],[-90.1214,13.9959],[-90.0993,14.0676],[-90.0785,14.0613],[-90.0551,14.1303],[-90.08,14.1635],[-90.075,14.2007],[-90.0941,14.214],[-90.1876,14.2564],[-90.2067,14.2642],[-90.1988,14.3225],[-90.1319,14.3366],[-90.1155,14.3425],[-90.0911,14.3542],[-90.0496,14.4199],[-90.0535,14.4361],[-90.1186,14.4944],[-90.2175,14.4831],[-90.2574,14.4827],[-90.2567,14.5089],[-90.2954,14.5186],[-90.3308,14.4678],[-90.3537,14.5029],[-90.377,14.4895],[-90.3924,14.4908],[-90.3976,14.4826],[-90.4154,14.4617],[-90.416,14.4334],[-90.4395,14.4041],[-90.4304,14.3486],[-90.4388,14.338],[-90.4554,14.3263],[-90.4688,14.3195],[-90.5729,14.2566]]],"centro":[-90.3344,14.1672]},{"name":"BELICE","tipo":"reclamo","polys":[[[-89.1549,17.329],[-89.0641,17.3829],[-89.0342,17.3752],[-88.9101,17.3894],[-88.8758,17.415],[-88.7456,17.4114],[-88.6864,17.4447],[-88.6352,17.4923],[-88.6408,17.6308],[-88.6265,17.6718],[-88.5685,17.6991],[-88.576,17.73],[-88.5766,17.759],[-88.5692,17.8196],[-88.571,17.8724],[-88.5461,17.9145],[-88.3223,17.9999],[-88.4551,18.119],[-88.5087,18.2025],[-88.6209,18.2268],[-88.6876,18.1788],[-88.6857,18.1563],[-88.7132,18.0995],[-88.7343,18.0461],[-88.7699,18.0218],[-88.7836,17.9963],[-88.7886,17.978],[-88.801,17.9643],[-88.854,17.9121],[-88.8864,17.8943],[-88.9587,17.9537],[-88.998,17.9643],[-89.013,17.991],[-89.0429,18.0029],[-89.0597,17.9904],[-89.0884,17.9869],[-89.1302,17.978],[-89.1339,17.9655],[-89.1605,17.7633],[-89.1549,17.329]],[[-88.2949,17.9726],[-88.1644,17.9551],[-88.1529,17.9694],[-88.147,18.0022],[-88.1023,18.1246],[-88.088,18.2116],[-88.0952,18.2529],[-88.1049,18.3772],[-88.1754,18.3438],[-88.2078,18.3445],[-88.2609,18.3539],[-88.3434,18.3334],[-88.3209,18.3666],[-88.3426,18.3622],[-88.3942,18.3493],[-88.3983,18.3733],[-88.384,18.3859],[-88.3153,18.43],[-88.3025,18.4683],[-88.3311,18.4881],[-88.3817,18.4838],[-88.4087,18.493],[-88.4493,18.4763],[-88.4838,18.4901],[-88.5292,18.4327],[-88.5489,18.3695],[-88.5571,18.3462],[-88.6045,18.2866],[-88.5087,18.2025],[-88.4551,18.119],[-88.3728,18.0449],[-88.2949,17.9726]],[[-87.7846,17.5173],[-87.7934,17.5348],[-87.8105,17.5382],[-87.8265,17.5074],[-87.7966,17.5127],[-87.7942,17.5025],[-87.8189,17.4815],[-87.8209,17.4682],[-87.8632,17.4644],[-87.8556,17.4793],[-87.8712,17.4713],[-87.9254,17.3712],[-87.941,17.2523],[-87.9266,17.1879],[-87.8979,17.1643],[-87.9143,17.2283],[-87.9175,17.247],[-87.9059,17.335],[-87.8955,17.3651],[-87.8903,17.4191],[-87.8449,17.4298],[-87.8089,17.37],[-87.8161,17.3476],[-87.8245,17.3049],[-87.8576,17.2535],[-87.8684,17.2283],[-87.8772,17.2241],[-87.8556,17.1959],[-87.8249,17.2847],[-87.7874,17.319],[-87.7826,17.3498],[-87.8078,17.4134],[-87.8026,17.4633],[-87.7699,17.5112],[-87.7846,17.5173]],[[-88.639,17.4578],[-88.6068,17.4732],[-88.5857,17.4884],[-88.5689,17.2238],[-88.545,17.175],[-88.5679,17.1216],[-88.5698,17.1023],[-88.3354,17.1061],[-88.3015,17.1586],[-88.292,17.2955],[-88.2366,17.4834],[-88.1875,17.4831],[-88.1831,17.5009],[-88.2066,17.5139],[-88.2309,17.5205],[-88.2843,17.6456],[-88.2286,17.7549],[-88.2063,17.8943],[-88.1772,17.9482],[-88.1991,17.9621],[-88.3435,17.9572],[-88.5617,17.8961],[-88.5754,17.854],[-88.5723,17.8],[-88.5723,17.7406],[-88.5766,17.7056],[-88.576,17.689],[-88.6365,17.6534],[-88.6452,17.604],[-88.639,17.4578]],[[-88.0114,17.8752],[-87.9657,17.9097],[-87.8909,18.0411],[-87.8703,18.0913],[-87.8263,18.1389],[-87.8383,18.1772],[-87.8692,18.1859],[-87.8874,18.1566],[-87.9206,18.0797],[-87.932,18.0639],[-87.9351,18.0374],[-87.9913,17.9301],[-88.0069,17.8893],[-88.0291,17.8762],[-88.0114,17.8752]],[[-89.1549,17.329],[-89.1539,16.9949],[-89.1809,16.4161],[-89.1374,16.4651],[-89.0424,16.5026],[-89.0221,16.5125],[-88.9986,16.5041],[-88.9538,16.5213],[-88.9528,16.5343],[-88.9402,16.5439],[-88.9108,16.5523],[-88.8129,16.6256],[-88.8188,16.6516],[-88.7856,16.6826],[-88.7777,16.6882],[-88.7766,16.7136],[-88.7207,16.7987],[-88.6727,16.817],[-88.6914,16.8368],[-88.6656,16.8561],[-88.6602,16.9148],[-88.6316,16.9402],[-88.6122,16.9599],[-88.6048,16.9707],[-88.5683,17.0303],[-88.5609,17.0381],[-88.6056,17.0984],[-88.5773,17.1096],[-88.5579,17.1382],[-88.5474,17.1902],[-88.5717,17.2428],[-88.6024,17.4926],[-88.6115,17.4579],[-88.6589,17.4543],[-88.6782,17.4436],[-88.7051,17.4364],[-88.7655,17.4067],[-88.8977,17.4108],[-88.9344,17.3829],[-89.0186,17.3775],[-89.0479,17.3716],[-89.0834,17.3775],[-89.1549,17.329]],[[-88.5848,17.1028],[-88.6089,17.0937],[-88.5956,17.0732],[-88.5683,17.0303],[-88.58,17.021],[-88.6122,16.9599],[-88.6288,16.9514],[-88.6628,16.9006],[-88.6722,16.8454],[-88.6906,16.8268],[-88.6824,16.8087],[-88.7355,16.7828],[-88.7777,16.6882],[-88.7657,16.6867],[-88.6324,16.685],[-88.588,16.6596],[-88.5826,16.6447],[-88.5874,16.6173],[-88.5505,16.5542],[-88.5355,16.5183],[-88.3814,16.5108],[-88.3864,16.5315],[-88.3928,16.545],[-88.3742,16.5501],[-88.3778,16.5653],[-88.3604,16.6264],[-88.325,16.6651],[-88.3088,16.6756],[-88.3065,16.7253],[-88.3086,16.7604],[-88.282,16.7892],[-88.2604,16.817],[-88.2783,16.8913],[-88.2611,16.9253],[-88.22,16.9463],[-88.2203,16.9656],[-88.2377,17.0095],[-88.2484,17.0635],[-88.292,17.0857],[-88.2936,17.1106],[-88.3086,17.1204],[-88.3716,17.1025],[-88.5848,17.1028]],[[-89.1976,16.3985],[-89.2168,16.1255],[-89.2204,15.8854],[-89.1781,15.9123],[-89.1198,15.908],[-89.0428,15.9184],[-89.0237,15.9046],[-89.0105,15.9023],[-88.9886,15.9073],[-88.9208,15.8961],[-88.9184,15.9192],[-88.9284,15.9943],[-88.8584,16.0439],[-88.8397,16.075],[-88.8098,16.1044],[-88.7973,16.1187],[-88.7568,16.1415],[-88.7443,16.1678],[-88.7443,16.1834],[-88.7431,16.2223],[-88.7185,16.24],[-88.6603,16.2584],[-88.6331,16.2829],[-88.5801,16.2641],[-88.5434,16.2871],[-88.5294,16.3124],[-88.4835,16.3713],[-88.4564,16.4154],[-88.3865,16.5076],[-88.5586,16.5273],[-88.5545,16.5818],[-88.5905,16.627],[-88.5834,16.6515],[-88.601,16.6681],[-88.6592,16.6953],[-88.7138,16.6862],[-88.7657,16.6867],[-88.7983,16.6762],[-88.8119,16.6568],[-88.818,16.6319],[-88.8167,16.6151],[-88.9165,16.547],[-88.9337,16.5484],[-88.9528,16.5343],[-88.9582,16.5254],[-88.9623,16.5141],[-89.0141,16.5041],[-89.0345,16.5121],[-89.0871,16.4781],[-89.1609,16.4463],[-89.1976,16.3985]]],"centro":[-88.7,17.05]}];
+const DEPT_CENTROIDS = {"ALTA VERAPAZ":[15.6346,-90.0988],"SUCHITEPÉQUEZ":[14.4028,-91.4081],"EL PROGRESO":[14.8947,-90.082],"ZACAPA":[15.0381,-89.5064],"PETÉN":[16.978,-90.0196],"QUICHÉ":[15.4475,-90.9404],"CHIQUIMULA":[14.6902,-89.4226],"SACATEPÉQUEZ":[14.5548,-90.7446],"GUATEMALA":[14.6278,-90.4891],"IZABAL":[15.5584,-88.9944],"JALAPA":[14.6226,-89.9421],"SAN MARCOS":[15.0188,-91.9315],"HUEHUETENANGO":[15.6486,-91.5598],"TOTONICAPÁN":[15.0134,-91.3771],"QUETZALTENANGO":[14.7872,-91.7141],"RETALHULEU":[14.4181,-91.7888],"BAJA VERAPAZ":[15.1012,-90.3699],"SOLOLÁ":[14.7166,-91.2589],"ESCUINTLA":[14.1637,-90.9962],"CHIMALTENANGO":[14.6929,-90.921],"JUTIAPA":[14.2102,-89.8966],"SANTA ROSA":[14.1672,-90.3344]};   // { "DEPARTAMENTO": [lat, lon] }
+const MUNI_COORDS = {"ALTA VERAPAZ|CAHABÓN":[15.6,-89.81],"ALTA VERAPAZ|CHAHAL":[15.81,-89.64],"ALTA VERAPAZ|CHISEC":[15.81,-90.29],"ALTA VERAPAZ|COBÁN":[15.47,-90.37],"ALTA VERAPAZ|FRAY BARTOLOMÉ DE LAS CASAS":[15.81,-89.86],"ALTA VERAPAZ|PANZÓS":[15.4,-89.64],"ALTA VERAPAZ|SAN AGUSTÍN LANQUÍN":[15.57,-89.98],"ALTA VERAPAZ|SAN CRISTÓBAL VERAPAZ":[15.37,-90.48],"ALTA VERAPAZ|SAN JUAN CHAMELCO":[15.42,-90.32],"ALTA VERAPAZ|SAN MIGUEL TUCURÚ":[15.3,-90.07],"ALTA VERAPAZ|SANTA CATALINA LA TINTA":[15.32,-89.9],"ALTA VERAPAZ|SENAHÚ":[15.42,-89.82],"BAJA VERAPAZ|PURULHÁ FIJO":[15.24,-90.24],"BAJA VERAPAZ|PURULHÁ MÓVIL":[15.24,-90.22],"BAJA VERAPAZ|SAN JERÓNIMO":[15.06,-90.24],"BAJA VERAPAZ|SAN MIGUEL CHICAJ":[15.09,-90.4],"CHIMALTENANGO|ACATENANGO":[14.55,-90.94],"CHIMALTENANGO|EL TEJAR":[14.65,-90.79],"CHIMALTENANGO|PATZÚN":[14.68,-91.01],"CHIMALTENANGO|SAN MIGUEL POCHUTA":[14.55,-91.1],"CHIMALTENANGO|SAN PEDRO YEPOCAPA":[14.5,-91.0],"CHIQUIMULA|CAMOTÁN":[14.82,-89.37],"CHIQUIMULA|JOCOTÁN":[14.8,-89.39],"CHIQUIMULA|OLOPA":[14.69,-89.36],"EL PROGRESO|EL JÍCARO":[14.91,-89.89],"EL PROGRESO|MORAZÁN":[14.93,-90.13],"EL PROGRESO|SAN ANTONIO LA PAZ":[14.74,-90.16],"ESCUINTLA|GUANAGAZAPA":[14.22,-90.66],"ESCUINTLA|LA DEMOCRACIA":[14.23,-90.93],"ESCUINTLA|LA GOMERA":[14.08,-91.05],"ESCUINTLA|MASAGUA":[14.2,-90.83],"ESCUINTLA|NUEVA CONCEPCIÓN":[14.2,-91.3],"ESCUINTLA|PALÍN":[14.4,-90.69],"ESCUINTLA|SAN VICENTE PACAYA":[14.42,-90.64],"ESCUINTLA|SANTA LUCIA COTZUMALGUAPA":[14.33,-91.02],"ESCUINTLA|SIPACATE":[13.93,-91.15],"ESCUINTLA|SIQUINALÁ":[14.3,-90.96],"ESCUINTLA|TIQUISATE":[14.28,-91.36],"GUATEMALA|FEGUA":[14.63,-90.51],"GUATEMALA|MAIMI":[14.62,-90.52],"GUATEMALA|MAINA":[14.64,-90.5],"GUATEMALA|ROOSEVELT":[14.62,-90.55],"GUATEMALA|UNOP":[14.61,-90.53],"GUATEMALA|ZONA 5":[14.61,-90.5],"GUATEMALA|PALENCIA":[14.66,-90.36],"GUATEMALA|LO DE CARRANZA":[14.72,-90.45],"GUATEMALA|SAN JUAN SACATEPÉQUEZ":[14.72,-90.64],"HUEHUETENANGO|AGUACATÁN":[15.34,-91.31],"HUEHUETENANGO|HUEHUETENANGO":[15.32,-91.47],"HUEHUETENANGO|MALACATANCITO":[15.25,-91.5],"HUEHUETENANGO|SAN JUAN ATITÁN":[15.45,-91.62],"HUEHUETENANGO|SAN PEDRO NECTA":[15.5,-91.77],"HUEHUETENANGO|SAN PEDRO SOLOMA":[15.66,-91.43],"HUEHUETENANGO|SAN RAFAEL PÉTZAL":[15.43,-91.62],"HUEHUETENANGO|SANTA BÁRBARA":[15.5,-91.55],"HUEHUETENANGO|SANTIAGO CHIMALTENANGO":[15.42,-91.65],"IZABAL|EL ESTOR":[15.53,-89.35],"IZABAL|PLAYA PATAXTE":[15.55,-89.2],"IZABAL|FRONTERAS RIO DULCE":[15.66,-88.99],"IZABAL|LOS AMATES":[15.27,-89.1],"IZABAL|MORALES":[15.48,-88.83],"IZABAL|ENTRE RÍOS":[15.62,-88.65],"JALAPA|MATAQUESCUINTLA":[14.53,-90.18],"JALAPA|SAN CARLOS ALZATATE":[14.53,-90.07],"JALAPA|SAN LUIS JILOTEPEQUE":[14.65,-89.73],"JALAPA|SAN PEDRO PÍNULA":[14.68,-89.85],"JUTIAPA|COMAPA":[14.11,-89.92],"JUTIAPA|CONGUACO":[14.05,-90.03],"JUTIAPA|EL ADELANTO":[14.27,-89.85],"JUTIAPA|JALPATAGUA":[14.13,-90.01],"JUTIAPA|QUESADA":[14.28,-90.04],"JUTIAPA|YUPILTEPEQUE":[14.17,-89.77],"JUTIAPA|SANTA CATARINA MITA":[14.46,-89.74],"PETÉN|LA LIBERTAD":[16.78,-90.11],"PETÉN|MELCHOR DE MENCOS":[17.07,-89.15],"PETÉN|POPTÚN":[16.33,-89.42],"PETÉN|SAN BENITO":[16.92,-89.9],"PETÉN|SAN LUIS":[16.2,-89.44],"PETÉN|SANTA ANA":[16.81,-89.82],"PETÉN|SAN FRANCISCO":[16.79,-89.93],"QUETZALTENANGO|CAJOLÁ":[14.92,-91.61],"QUICHÉ|CHICHÉ":[15.02,-91.05],"QUICHÉ|SAN ANDRÉS SAJCABAJÁ":[15.3,-90.95],"QUICHÉ|SAN MIGUEL USPANTÁN":[15.35,-90.86],"QUICHÉ|SANTA CRUZ DEL QUICHÉ":[15.03,-91.15],"RETALHULEU|CHAMPERICO":[14.3,-91.91],"RETALHULEU|NUEVO SAN CARLOS":[14.61,-91.69],"SACATEPÉQUEZ|SANTA MARÍA DE JESUS":[14.54,-90.71],"SAN MARCOS|CONCEPCIÓN TUTUAPA":[15.18,-91.85],"SAN MARCOS|ESQUIPULAS PALO GORDO":[14.96,-91.78],"SAN MARCOS|LA BLANCA":[14.62,-92.13],"SAN MARCOS|LA REFORMA":[14.9,-91.86],"SAN MARCOS|MALACATÁN":[14.91,-92.06],"SAN MARCOS|SAN JOSÉ OJETENAM":[15.21,-91.95],"SAN MARCOS|SAN LORENZO":[14.98,-91.79],"SAN MARCOS|SAN MARCOS":[14.96,-91.79],"SAN MARCOS|SAN MIGUEL IXTAHUACÁN":[15.18,-91.75],"SAN MARCOS|SAN PABLO":[14.93,-92.0],"SANTA ROSA|BARBERENA":[14.31,-90.36],"SANTA ROSA|CASILLAS":[14.45,-90.16],"SANTA ROSA|CHIQUIMULILLA":[14.09,-90.38],"SANTA ROSA|CUILAPA":[14.28,-90.3],"SANTA ROSA|NUEVA SANTA ROSA":[14.39,-90.28],"SANTA ROSA|PUEBLO NUEVO VIÑAS":[14.23,-90.46],"SANTA ROSA|SAN RAFAEL LAS FLORES":[14.48,-90.16],"SANTA ROSA|SANTA CRUZ NARANJO":[14.36,-90.28],"SANTA ROSA|TAXISCO":[14.06,-90.46],"SOLOLÁ|SANTA CRUZ LA LAGUNA":[14.74,-91.2],"SUCHITEPÉQUEZ|CHICACAO":[14.54,-91.32],"SUCHITEPÉQUEZ|PATULUL":[14.42,-91.16],"SUCHITEPÉQUEZ|RÍO BRAVO":[14.43,-91.3],"SUCHITEPÉQUEZ|SAMAYAC":[14.58,-91.47],"SUCHITEPÉQUEZ|SAN ANTONIO SUCHITEPÉQUEZ":[14.53,-91.42],"SUCHITEPÉQUEZ|SAN BERNARDINO":[14.57,-91.48],"SUCHITEPÉQUEZ|SAN FRANCISCO ZAPOTITLÁN":[14.58,-91.55],"SUCHITEPÉQUEZ|SAN LORENZO":[14.55,-91.5],"SUCHITEPÉQUEZ|SAN PABLO JOCOPILAS":[14.6,-91.45],"SUCHITEPÉQUEZ|SANTA BÁRBARA":[14.48,-91.2],"SUCHITEPÉQUEZ|SANTO TOMÁS LA UNIÓN":[14.61,-91.4],"TOTONICAPÁN|SANTA LUCÍA LA REFORMA":[15.05,-91.3],"TOTONICAPÁN|SANTA MARÍA CHIQUIMULA":[15.04,-91.32],"TOTONICAPÁN|TOTONICAPÁN":[14.91,-91.36],"ZACAPA|CABAÑAS":[14.92,-89.81],"ZACAPA|GUALÁN":[15.13,-89.36],"ZACAPA|HUITÉ":[14.93,-89.74],"ZACAPA|LA UNIÓN":[14.97,-89.29],"ZACAPA|SAN JORGE":[14.96,-89.62],"ZACAPA|USUMATLÁN":[14.95,-89.78]};      // { "DEP|COMEDOR": [lat, lon] }
+
+/* ---------- Helpers ---------- */
+const $ = s => document.querySelector(s);
+function norm(s){ return (s==null?'':String(s)).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase().trim().replace(/\s+/g,' '); }
+function num(v){ if(v==null) return 0; if(typeof v==='number') return isFinite(v)?v:0;
+  const n=parseFloat(String(v).replace(/,/g,'').replace(/Q/gi,'').replace(/%/g,'').trim()); return isNaN(n)?0:n; }
+function fmtN(n){ return Math.round(n||0).toLocaleString('es-GT'); }
+function fmtQ(n){ return 'Q ' + (n||0).toLocaleString('es-GT',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+function fmtQk(n){ n=n||0; if(Math.abs(n)>=1e6) return 'Q '+(n/1e6).toLocaleString('es-GT',{maximumFractionDigits:2})+' M';
+  if(Math.abs(n)>=1e3) return 'Q '+(n/1e3).toLocaleString('es-GT',{maximumFractionDigits:0})+' k'; return fmtQ(n); }
+
+const DEPS=["ALTA VERAPAZ","BAJA VERAPAZ","CHIMALTENANGO","CHIQUIMULA","EL PROGRESO","ESCUINTLA","GUATEMALA","HUEHUETENANGO","IZABAL","JALAPA","JUTIAPA","PETÉN","QUETZALTENANGO","QUICHÉ","RETALHULEU","SACATEPÉQUEZ","SAN MARCOS","SANTA ROSA","SOLOLÁ","SUCHITEPÉQUEZ","TOTONICAPÁN","ZACAPA"];
+const CANON={}; DEPS.forEach(d=>CANON[norm(d)]=d);
+[["EL QUICHE","QUICHÉ"],["QUICHE","QUICHÉ"],["SUCHITEPEQUEZ","SUCHITEPÉQUEZ"],["SACATEPEQUEZ","SACATEPÉQUEZ"],["SOLOLA","SOLOLÁ"],["PETEN","PETÉN"],["TOTONICAPAN","TOTONICAPÁN"],["QUEZALTENANGO","QUETZALTENANGO"]].forEach(([a,c])=>CANON[norm(a)]=c);
+function canonDep(s){ return CANON[norm(s)] || (s==null?'SIN DATO':String(s).trim().toUpperCase()||'SIN DATO'); }
+const MESES=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+
+/* normalized index for coordinate lookup */
+const _MUNI_N={}; for(const k in MUNI_COORDS){ const [d,c]=k.split('|'); _MUNI_N[norm(d)+'|'+norm(c)]=MUNI_COORDS[k]; }
+const _CENT_N={}; for(const k in DEPT_CENTROIDS){ _CENT_N[norm(k)]=DEPT_CENTROIDS[k]; }
+function coordComedor(dep, com){
+  const dn=norm(dep), cn=norm(com);
+  const hit=_MUNI_N[dn+'|'+cn]; if(hit) return hit;
+  let base=_CENT_N[dn] || _CENT_N[norm(canonDep(dep))];
+  if(!base) return null;
+  // deterministic jitter so several comedores in a dept don't stack
+  let h=0; for(let i=0;i<cn.length;i++){ h=((h<<5)-h+cn.charCodeAt(i))|0; } h=Math.abs(h);
+  const dlat=((h%100)/100-0.5)*0.18, dlon=(((h/100|0)%100)/100-0.5)*0.18;
+  return [base[0]+dlat, base[1]+dlon];
+}
+
+/* ---------- SheetJS access ---------- */
+function rowsOf(wb,name){ const ws=wb.Sheets[name]; return ws?XLSX.utils.sheet_to_json(ws,{header:1,raw:true,defval:null}):[]; }
+function findSheet(wb,...frags){ for(const n of wb.SheetNames){ const N=norm(n); if(frags.some(f=>N.includes(norm(f)))) return n; } return null; }
+
+/* ---------- PARSER 1: Cuota por Semana → indicadores ---------- */
+function parseCuotaSemana(wb){
+  const sn=findSheet(wb,'EJECUCION POR SEMANA','POR SEMANA'); if(!sn) return null;
+  const R=rowsOf(wb,sn);
+  let dataRow=null,best=0;
+  for(const r of R){ const c=r.filter(x=>typeof x==='number').length; if(c>best){best=c;dataRow=r;} }
+  if(!dataRow||best<8) return null;
+  const nums=dataRow.filter(x=>typeof x==='number');
+  let labels=null;
+  for(const r of R){ const j=r.map(norm).join(' ');
+    if(j.includes('SEMANA')&&(j.includes('SERVID')||j.includes('PROYEC'))){ labels=r.filter(x=>x!=null&&String(x).trim()!=='').map(String); break; } }
+  const wl=(labels||[]).filter(t=>norm(t).includes('SEMANA'));
+  const tipoOf=i=>{ const t=norm(wl[i]||''); if(t.includes('PROYEC'))return'proyeccion'; if(t.includes('SERVID'))return'servida'; return i<2?'servida':'proyeccion'; };
+  const semanas=[];
+  for(let i=0;i<4;i++) semanas.push({label:'Sem '+(i+1),tipo:tipoOf(i),rac:num(nums[i*2]),fin:num(nums[i*2+1])});
+  const totRac=nums.length>=10?num(nums[8]):semanas.reduce((a,s)=>a+s.rac,0);
+  const totFin=nums.length>=10?num(nums[9]):semanas.reduce((a,s)=>a+s.fin,0);
+  const servRac=semanas.filter(s=>s.tipo==='servida').reduce((a,s)=>a+s.rac,0);
+  const servFin=semanas.filter(s=>s.tipo==='servida').reduce((a,s)=>a+s.fin,0);
+  return {semanas,servRac,servFin,totRac,totFin,precioMedio:servRac?servFin/servRac:0};
+}
+
+/* ---------- PARSER 2: Cuota Quincena → gráficas por comedor ---------- */
+function parseCuotaQuincena(wb){
+  const sn=findSheet(wb,'EJECUCION QUINCENA','QUINCENA'); if(!sn) return null;
+  const R=rowsOf(wb,sn);
+  let h=-1;
+  for(let i=0;i<Math.min(40,R.length);i++){ const nn=R[i].map(norm);
+    if(nn.includes('DEPARTAMENTO')&&nn.some(x=>x.includes('COMEDOR'))){h=i;break;} }
+  if(h<0) return null;
+  const hd=R[h].map(norm);
+  const cDep=hd.indexOf('DEPARTAMENTO');
+  const cCom=hd.findIndex(x=>x.includes('COMEDOR'));
+  const cMod=hd.findIndex(x=>x==='MODALIDAD');
+  const cContr=hd.findIndex(x=>x.includes('CONTRATACION'));
+  const cTotEj=hd.findIndex(x=>x.includes('TOTAL EJECUCION'));
+  const cTotRac=hd.findIndex(x=>x.includes('TOTAL RACIONES'));
+  // 1a-2da semana desayuno/almuerzo servidos: first RACIONES SERVIDAS block after LOTE
+  const comedores=[]; let mFijo=0,mMovil=0; const contr={}; let totDes=0,totAlm=0;
+  for(let i=h+1;i<R.length;i++){ const r=R[i]; const dep=r[cDep];
+    if(!dep||!String(dep).trim()||norm(dep).startsWith('TOTAL')) continue;
+    const mod=(cMod>=0&&norm(r[cMod]).includes('MOVIL'))?'MÓVIL':'FIJO';
+    if(mod==='MÓVIL')mMovil++; else mFijo++;
+    const c=(cContr>=0&&r[cContr])?String(r[cContr]).trim().toUpperCase():'N/D'; contr[c]=(contr[c]||0)+1;
+    comedores.push({com:String(r[cCom]||'').trim(),dep:canonDep(dep),mod,
+                    ejec:cTotEj>=0?num(r[cTotEj]):0, rac:cTotRac>=0?num(r[cTotRac]):0});
+    // desayuno/almuerzo servidos viven en las dos columnas siguientes al bloque LOTE (col 10/11 en el template)
+    totDes+=num(r[10]); totAlm+=num(r[11]);
+  }
+  return {comedores,mFijo,mMovil,contr,totDes,totAlm};
+}
+
+/* ---------- PARSER 3: DPS Comedores → mapa + tendencia ---------- */
+function parseDPS(wb){
+  const sn=findSheet(wb,'COMEDORES','COMEDOES'); if(!sn) return null;
+  const R=rowsOf(wb,sn);
+  let h=-1;
+  for(let i=0;i<Math.min(40,R.length);i++){ const nn=R[i].map(norm);
+    if(nn.includes('DEPARTAMENTO')&&nn.some(x=>x.includes('MUNICIPIO'))&&nn.some(x=>x.includes('UNIDAD'))){h=i;break;} }
+  if(h<0) return null;
+  const hdr=R[h].map(norm), sub=(R[h+1]||[]).map(norm);
+  let cTotFis=-1;
+  for(let j=0;j<hdr.length;j++){ if(hdr[j].includes('TOTAL')&&(hdr[j].includes('2026')||hdr[j].includes('EJECUCION'))){cTotFis=j;break;} }
+  if(cTotFis<0){ for(let j=sub.length-1;j>=0;j--){ if(sub[j].includes('FISICA')){cTotFis=j;break;} } }
+  if(cTotFis<0) cTotFis=28;
+  const cTotFin=cTotFis+1;
+  const cDep=hdr.indexOf('DEPARTAMENTO'), cMun=hdr.findIndex(x=>x.includes('MUNICIPIO')), cUM=hdr.findIndex(x=>x.includes('UNIDAD'));
+  let cIdx=-1; for(let j=(cUM<0?4:cUM+1);j<sub.length;j++){ if(sub[j].includes('FISICA')){cIdx=j;break;} }
+  if(cIdx<0) cIdx=4;
+  const depAgg={},munAgg={}; const fisMes=Array(12).fill(0),finMes=Array(12).fill(0);
+  let cur=null,nCom=0;
+  for(let i=h+2;i<R.length;i++){ const r=R[i];
+    if(r[cDep]&&String(r[cDep]).trim()) cur=canonDep(r[cDep]);
+    const mun=r[cMun],umv=r[cUM];
+    if(!(mun&&String(mun).trim()&&umv&&String(umv).trim())) continue;
+    if(!cur) continue;
+    const fis=num(r[cTotFis]),fin=num(r[cTotFin]);
+    (depAgg[cur]=depAgg[cur]||{rac:0,fin:0}); depAgg[cur].rac+=fis; depAgg[cur].fin+=fin;
+    const key=cur+'|'+String(mun).trim().toUpperCase();
+    (munAgg[key]=munAgg[key]||{dep:cur,mun:String(mun).trim(),rac:0,fin:0}); munAgg[key].rac+=fis; munAgg[key].fin+=fin;
+    for(let k=0;k<12;k++){ fisMes[k]+=num(r[cIdx+k*2]); finMes[k]+=num(r[cIdx+1+k*2]); }
+    if(norm(umv).startsWith('DESAYUNO')) nCom++;
+  }
+  return {depAgg,munAgg:Object.values(munAgg),fisMes,finMes,
+          totRac:Object.values(depAgg).reduce((a,v)=>a+v.rac,0),
+          totFin:Object.values(depAgg).reduce((a,v)=>a+v.fin,0),nCom};
+}
+
+/* ---------- Shared state ---------- */
+const state={ semana:null, quincena:null, dps:null, clasificador:null };
+
+/* ---------- PARSER 4: Clasificador Global → población atendida ---------- */
+function parseClasificador(wb){
+  let R=null,h=-1;
+  for(const nm of wb.SheetNames){ const rr=rowsOf(wb,nm);
+    for(let i=0;i<Math.min(20,rr.length);i++){ const j=rr[i].map(norm).join('|');
+      if(j.includes('SEXO')&&j.includes('EDAD')){ R=rr; h=i; break; } }
+    if(R) break; }
+  if(!R) return null;
+  const sub=(R[h+1]||[]).map(norm);
+  const one=(...ks)=>sub.findIndex(x=>ks.every(k=>x.includes(k)));
+  const cRac=one('RACIONES');
+  const C={ fem:one('FEMENINO'), masc:one('MASCULINO'),
+    ninez:sub.findIndex(x=>x.includes('NINEZ')||x.includes('MENORES DE 13')),
+    juv:sub.findIndex(x=>x.includes('JUVENTUD')), adu:sub.findIndex(x=>x.includes('ADULTO')),
+    ter:sub.findIndex(x=>x.includes('TERCERA')||x.includes('MAYORES DE 60')),
+    maya:one('MAYA'), xinca:one('XINCA'), gari:one('GARIFUNA'), mest:one('MESTIZO'),
+    otro:sub.findIndex(x=>x==='OTRO'||x.includes('OTRO')) };
+  const labelCol=cRac>0?cRac-1:0;
+  const periodos=[]; let total=null;
+  for(let i=h+2;i<R.length;i++){ const r=R[i];
+    let lab=r[labelCol]; if(lab==null||String(lab).trim()==='') lab=r.find(x=>typeof x==='string'&&x.trim());
+    if(lab==null||String(lab).trim()==='') continue;
+    const rac=num(r[cRac]); if(!rac) continue;
+    const rec={ label:String(lab).trim(), raciones:rac,
+      sexo:{'Femenino':num(r[C.fem]),'Masculino':num(r[C.masc])},
+      edad:{'Niñez':num(r[C.ninez]),'Juventud':num(r[C.juv]),'Adultos':num(r[C.adu]),'Tercera Edad':num(r[C.ter])},
+      etnia:{'Maya':num(r[C.maya]),'Xinca':num(r[C.xinca]),'Garífuna':num(r[C.gari]),'Mestizo':num(r[C.mest]),'Otro':num(r[C.otro])} };
+    if(norm(rec.label)==='TOTAL') total=rec; else periodos.push(rec);
+  }
+  if(!total && periodos.length){
+    total={label:'Acumulado',raciones:0,sexo:{'Femenino':0,'Masculino':0},edad:{'Niñez':0,'Juventud':0,'Adultos':0,'Tercera Edad':0},etnia:{'Maya':0,'Xinca':0,'Garífuna':0,'Mestizo':0,'Otro':0}};
+    periodos.forEach(p=>{ total.raciones+=p.raciones; for(const k in p.sexo)total.sexo[k]+=p.sexo[k]; for(const k in p.edad)total.edad[k]+=p.edad[k]; for(const k in p.etnia)total.etnia[k]+=p.etnia[k]; });
+  } else if(total){ total={...total,label:'Acumulado'}; }
+  return {periodos,total};
+}
+
+/* modalidad lookup (from Cuota Quincena) for map markers */
+function modLookup(){ const m={}; if(state.quincena){ state.quincena.comedores.forEach(c=>{ m[norm(c.dep)+'|'+norm(c.com)]=c.mod; }); } return m; }
+
+/* ---------- File routing (sniff + load into correct slot) ---------- */
+function sheetHasHeader(wb, ...must){
+  for(const nm of wb.SheetNames){ const rr=rowsOf(wb,nm);
+    for(let i=0;i<Math.min(20,rr.length);i++){ const nn=rr[i].map(norm);
+      if(must.every(m=>nn.some(x=>x.includes(m)))) return true; } }
+  return false;
+}
+function sniffType(wb){
+  if(sheetHasHeader(wb,'SEXO','EDAD')) return 'clasif';                 // clasificador (checar antes que DPS)
+  if(findSheet(wb,'POR SEMANA','QUINCENA')) return 'semana';
+  if(sheetHasHeader(wb,'DEPARTAMENTO','MUNICIPIO','UNIDAD')) return 'dps';
+  return null;
+}
+async function routeFile(file, preferSlot){
+  const buf=await file.arrayBuffer();
+  let wb; try{ wb=XLSX.read(buf,{type:'array'}); }catch(e){ alert('No se pudo leer el archivo: '+file.name); return; }
+  const slot = sniffType(wb) || preferSlot;
+  if(slot==='semana'){ state.semana=parseCuotaSemana(wb); state.quincena=parseCuotaQuincena(wb); markLoaded('semana',file.name,state.semana); }
+  else if(slot==='clasif'){ state.clasificador=parseClasificador(wb); markLoaded('clasif',file.name,state.clasificador); }
+  else { state.dps=parseDPS(wb); markLoaded('dps',file.name,state.dps); }
+  renderActive();
+}
+function markLoaded(slot, fname, parsed){
+  const drop=$('#drop-'+slot), hint=$('#hint-'+slot), chip=$('#chip-'+slot);
+  drop.classList.add('loaded'); chip.classList.add('on');
+  let summ='';
+  if(slot==='semana' && parsed){ const q=state.quincena; summ = `${q?q.comedores.length:0} comedores · ${parsed.semanas.length} semanas · ${fmtN(parsed.totRac)} raciones`; }
+  else if(slot==='dps' && parsed){ summ = `${parsed.nCom} comedores · ${Object.keys(parsed.depAgg).length} departamentos · ${fmtQk(parsed.totFin)}`; }
+  else if(slot==='clasif' && parsed){ summ = `${fmtN(parsed.total.raciones)} personas · ${parsed.periodos.length} período(s) · 3 dimensiones`; }
+  else summ = 'Archivo cargado, pero no se reconoció la hoja esperada.';
+  hint.innerHTML = `<b style="color:#93C5FD">${fname}</b><br>${summ}`;
+  updateFeedStatus();
+}
+function updateFeedStatus(){
+  const n=[state.semana||state.quincena, state.dps, state.clasificador].filter(Boolean).length;
+  const el=$('#feed-status'); if(el){ el.textContent=`${n} de 3 fuentes cargadas`; el.classList.toggle('done',n>=3); }
+}
+function wireDrop(slot){
+  const drop=$('#drop-'+slot), input=$('#file-'+slot);
+  input.addEventListener('change', e=>{ if(e.target.files[0]) routeFile(e.target.files[0], slot); input.value=''; });
+  ['dragenter','dragover'].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.add('drag');}));
+  ['dragleave','drop'].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.remove('drag');}));
+  drop.addEventListener('drop', e=>{ const f=e.dataTransfer.files[0]; if(f) routeFile(f, slot); });
+}
+
+/* ============================================================
+   VELOCÍMETROS (SVG, arco 240°, aguja animada)
+   ============================================================ */
+const GA_CX=120, GA_CY=118, GA_R=92, GA_START=150, GA_SWEEP=240;
+function gPoint(f,R){ const d=(GA_START+f*GA_SWEEP)*Math.PI/180; return [GA_CX+R*Math.cos(d), GA_CY+R*Math.sin(d)]; }
+function gArc(f0,f1,R){ const a=gPoint(f0,R), b=gPoint(f1,R); const laf=((f1-f0)*GA_SWEEP>180)?1:0;
+  return `M${a[0].toFixed(2)} ${a[1].toFixed(2)} A ${R} ${R} 0 ${laf} 1 ${b[0].toFixed(2)} ${b[1].toFixed(2)}`; }
+
+function gaugeSVG(opts){
+  // opts: {value, max, zones:[{to,color}], ticks, bigText, suffix, minLabel, maxLabel}
+  const f=Math.max(0, Math.min(1, opts.value/opts.max));
+  const zones=opts.zones||[{to:0.5,color:'var(--z-bad)'},{to:0.8,color:'var(--z-warn)'},{to:1,color:'var(--z-ok)'}];
+  let s=`<svg viewBox="0 0 240 172" role="img">`;
+  // colored zones (the dial face)
+  let f0=0;
+  zones.forEach(z=>{ s+=`<path d="${gArc(f0,z.to,GA_R)}" fill="none" stroke="${z.color}" stroke-width="13" stroke-linecap="butt" opacity="0.9"/>`; f0=z.to; });
+  // inner hairline
+  s+=`<path d="${gArc(0,1,GA_R-9)}" fill="none" stroke="rgba(255,255,255,.08)" stroke-width="1"/>`;
+  // ticks
+  const nt=opts.ticks||10;
+  for(let i=0;i<=nt;i++){ const tf=i/nt; const major=(i%(nt/ (opts.majorEvery||2))===0);
+    const p1=gPoint(tf, GA_R-7), p2=gPoint(tf, GA_R-(major?15:11));
+    s+=`<line x1="${p1[0].toFixed(1)}" y1="${p1[1].toFixed(1)}" x2="${p2[0].toFixed(1)}" y2="${p2[1].toFixed(1)}" stroke="rgba(226,232,240,${major?0.8:0.4})" stroke-width="${major?1.4:0.8}"/>`; }
+  // end labels
+  const lp0=gPoint(0.045,GA_R-24), lp1=gPoint(0.955,GA_R-24);
+  s+=`<text x="${lp0[0].toFixed(0)}" y="${lp0[1].toFixed(0)}" fill="var(--muted)" font-size="9" font-family="'Space Grotesk'" text-anchor="middle">${opts.minLabel||'0'}</text>`;
+  s+=`<text x="${lp1[0].toFixed(0)}" y="${lp1[1].toFixed(0)}" fill="var(--muted)" font-size="9" font-family="'Space Grotesk'" text-anchor="middle">${opts.maxLabel||opts.max}</text>`;
+  // needle (animated sweep from min to value)
+  const rot=(GA_START+f*GA_SWEEP-270).toFixed(2);
+  s+=`<g class="needle"><polygon points="116.6,118 120,44 123.4,118" fill="var(--accent2)"/>
+      <animateTransform attributeName="transform" attributeType="XML" type="rotate"
+        from="-120 120 118" to="${rot} 120 118" dur="1.15s" fill="freeze"
+        calcMode="spline" keyTimes="0;1" keySplines="0.2 1 0.3 1"/></g>`;
+  s+=`<circle cx="120" cy="118" r="7.5" fill="#0d1a2c" stroke="var(--accent2)" stroke-width="2"/>`;
+  s+=`<circle cx="120" cy="118" r="2.4" fill="var(--accent2)"/>`;
+  // digital readout (lower gap)
+  s+=`<text x="120" y="150" class="mono" fill="var(--txt)" font-size="30" font-weight="700" text-anchor="middle">${opts.bigText}</text>`;
+  if(opts.suffix) s+=`<text x="120" y="164" fill="var(--muted)" font-size="10" text-anchor="middle" font-family="'Space Grotesk'">${opts.suffix}</text>`;
+  s+=`</svg>`;
+  return s;
+}
+
+function annualProjection(){
+  // Proyección anual FIJA (no editable): proyección mensual vigente (Cuota por Semana) × 12 meses.
+  if(!state.semana) return null;
+  return { rac: state.semana.totRac*12, fin: state.semana.totFin*12 };
+}
+function annualSummaryCard(){
+  const d=state.dps;
+  return `<div class="gauge" style="display:flex;flex-direction:column;justify-content:center;text-align:left;padding:18px 20px">
+      <div class="gtitle" style="margin:0 0 10px">Resumen del año</div>
+      <div class="kpi" style="background:transparent;border:0;padding:0 0 10px"><div class="k">Personas atendidas (acumulado)</div><div class="v">${fmtN(d.totRac)}</div></div>
+      <div class="kpi" style="background:transparent;border:0;padding:0"><div class="k">Monto ejecutado (acumulado)</div><div class="v sm">${fmtQ(d.totFin)}</div></div>
+    </div>`;
+}
+function buildAnnualGaugesHTML(){
+  const d=state.dps; if(!d) return '';
+  const proj=annualProjection();
+  if(!proj){
+    return annualSummaryCard() +
+      `<div class="gauge" style="grid-column:span 2;display:flex;align-items:center;justify-content:center;text-align:center;color:var(--muted);font-size:13px;line-height:1.5;padding:28px">
+        Cargue <b style="color:#93C5FD;margin:0 5px">Cuota por Semana</b> para calcular la proyección anual y su porcentaje de avance.</div>`;
+  }
+  const pctR=proj.rac>0? d.totRac/proj.rac*100 : 0, pctF=proj.fin>0? d.totFin/proj.fin*100 : 0;
+  const PCT=[{to:0.5,color:'var(--z-bad)'},{to:0.8,color:'var(--z-warn)'},{to:1,color:'var(--z-ok)'}];
+  const gR=gaugeSVG({value:Math.min(pctR,100),max:100,zones:PCT,ticks:10,bigText:pctR.toFixed(1)+'%',suffix:'ejecutado del proyectado',minLabel:'0',maxLabel:'100'});
+  const gF=gaugeSVG({value:Math.min(pctF,100),max:100,zones:PCT,ticks:10,bigText:pctF.toFixed(1)+'%',suffix:'ejecutado del proyectado',minLabel:'0',maxLabel:'100'});
+  return `
+    <div class="gauge">${gR}<div class="gtitle">Ejecución física del año</div><div class="gfoot">${fmtN(d.totRac)} de ${fmtN(proj.rac)} raciones</div></div>
+    <div class="gauge">${gF}<div class="gtitle">Ejecución financiera del año</div><div class="gfoot">${fmtQk(d.totFin)} de ${fmtQk(proj.fin)}</div></div>
+    ${annualSummaryCard()}`;
+}
+
+function renderGauges(){
+  const host=$('#gauges-host'); if(!host) return;
+  const p=state.semana;
+
+  // ---------- Mes en curso (Cuota por Semana) ----------
+  let monthly;
+  if(p){
+    const pctFis=p.totRac? p.servRac/p.totRac*100 : 0;
+    const pctFin=p.totFin? p.servFin/p.totFin*100 : 0;
+    const precio=p.precioMedio;
+    const PCT=[{to:0.5,color:'var(--z-bad)'},{to:0.8,color:'var(--z-warn)'},{to:1,color:'var(--z-ok)'}];
+    const PRICE=[{to:0.7,color:'var(--z-ok)'},{to:0.9,color:'var(--z-warn)'},{to:1,color:'var(--z-bad)'}];
+    const g1=gaugeSVG({value:pctFis,max:100,zones:PCT,ticks:10,bigText:pctFis.toFixed(1)+'%',suffix:'raciones servidas / mes',minLabel:'0',maxLabel:'100'});
+    const g2=gaugeSVG({value:pctFin,max:100,zones:PCT,ticks:10,bigText:pctFin.toFixed(1)+'%',suffix:'quetzales servidos / mes',minLabel:'0',maxLabel:'100'});
+    const g3=gaugeSVG({value:Math.min(precio,50),max:50,zones:PRICE,ticks:10,majorEvery:2,bigText:'Q'+precio.toFixed(2),suffix:'costo medio por ración',minLabel:'0',maxLabel:'50'});
+    const gap=pctFin-pctFis; let cls='bal',txt;
+    if(Math.abs(gap)<2){ cls='bal'; txt=`<b>Ejecución equilibrada.</b> El gasto (${pctFin.toFixed(1)}%) avanza al mismo ritmo que las raciones servidas (${pctFis.toFixed(1)}%). Costo medio de <b>Q${precio.toFixed(2)}</b> por ración.`; }
+    else if(gap>0){ cls='over'; txt=`<b>El gasto va por delante.</b> Financiero ${pctFin.toFixed(1)}% frente a físico ${pctFis.toFixed(1)}% (brecha +${gap.toFixed(1)} pts): se ha ejecutado presupuesto por encima del avance en raciones.`; }
+    else { cls='under'; txt=`<b>Las raciones van por delante.</b> Físico ${pctFis.toFixed(1)}% frente a financiero ${pctFin.toFixed(1)}% (brecha ${gap.toFixed(1)} pts): se sirvieron raciones por encima del gasto liquidado.`; }
+    const kpis=`<div class="kpis">
+      <div class="kpi"><div class="k">Raciones servidas</div><div class="v">${fmtN(p.servRac)}</div></div>
+      <div class="kpi"><div class="k">Raciones proyectadas (mes)</div><div class="v">${fmtN(p.totRac)}</div></div>
+      <div class="kpi"><div class="k">Monto ejecutado</div><div class="v sm">${fmtQ(p.servFin)}</div></div>
+      <div class="kpi"><div class="k">Monto proyectado (mes)</div><div class="v sm">${fmtQ(p.totFin)}</div></div></div>`;
+    monthly = `<div class="mini-h"><span class="mk">Mes en curso</span><span class="src">Cuota por Semana</span><span class="ln"></span></div>
+      <div class="gauges">
+        <div class="gauge">${g1}<div class="gtitle">Ejecución física</div><div class="gsub">del total proyectado del mes</div></div>
+        <div class="gauge">${g2}<div class="gtitle">Ejecución financiera</div><div class="gsub">del total proyectado del mes</div></div>
+        <div class="gauge">${g3}<div class="gtitle">Costo medio por ración</div><div class="gsub">quetzales por ración servida</div></div>
+      </div>
+      <div class="diag ${cls}"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" style="flex:0 0 auto;margin-top:1px"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.6"/><path d="M12 8v5m0 3h.01" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg><div>${txt}</div></div>
+      ${kpis}`;
+  } else {
+    monthly = `<div class="mini-h"><span class="mk">Mes en curso</span><span class="ln"></span></div>` + emptyBlock('Cargue <b>Cuota por Semana</b> para ver la ejecución del mes.');
+  }
+
+  // ---------- Acumulado del año (DPS vs proyección) ----------
+  let annual;
+  if(state.dps){
+    const proj=annualProjection();
+    const lock=`<svg width="13" height="13" viewBox="0 0 24 24" fill="none" style="opacity:.75;margin-right:5px"><rect x="5" y="11" width="14" height="9" rx="2" stroke="currentColor" stroke-width="1.8"/><path d="M8 11V8a4 4 0 0 1 8 0v3" stroke="currentColor" stroke-width="1.8"/></svg>`;
+    const projRow = proj ? `<div class="proj-row locked">
+        <div class="proj-field"><label>Proyección anual de raciones</label><div class="proj-val">${lock}${fmtN(proj.rac)}</div></div>
+        <div class="proj-field"><label>Proyección anual de monto</label><div class="proj-val">${lock}${fmtQ(proj.fin)}</div></div>
+        <div class="proj-note">Valor fijo, no editable — se calcula como <b>proyección mensual vigente × 12 meses</b>, para evitar ajustes manuales.</div>
+      </div>` : '';
+    annual = `<div class="mini-h" style="margin-top:24px"><span class="mk">Acumulado del año</span><span class="src">Ejecución DPS vs proyección</span><span class="ln"></span></div>
+      ${projRow}
+      <div class="gauges">${buildAnnualGaugesHTML()}</div>`;
+  } else {
+    annual = `<div class="mini-h" style="margin-top:24px"><span class="mk">Acumulado del año</span><span class="ln"></span></div>` + emptyBlock('Cargue <b>Ejecución DPS 2026</b> para ver la ejecución anual frente a lo proyectado.');
+  }
+
+  host.innerHTML = monthly + annual;
+}
+function emptyBlock(msg){
+  return `<div class="card"><div class="empty">
+    <svg width="40" height="40" viewBox="0 0 24 24" fill="none"><path d="M4 16l4.5-5 3.5 3.5L20 7" stroke="#3B82F6" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 20h16" stroke="#3B82F6" stroke-width="1.6" stroke-linecap="round"/></svg>
+    <div>${msg}</div></div></div>`;
+}
+
+/* ============================================================
+   MAPA DE GUATEMALA (SVG offline, portado del módulo de escritorio)
+   Alimentado por el archivo Ejecución DPS 2026 (hoja Comedores).
+   ============================================================ */
+const SVGNS="http://www.w3.org/2000/svg";
+const M_BBOX={minLon:-92.5,maxLon:-87.55,minLat:13.5,maxLat:18.6};
+const M_VB=100, M_PAD=4, M_COSLAT=Math.cos(((M_BBOX.minLat+M_BBOX.maxLat)/2)*Math.PI/180);
+function mProject(lon,lat){
+  const w=(M_BBOX.maxLon-M_BBOX.minLon)*M_COSLAT, h=(M_BBOX.maxLat-M_BBOX.minLat), span=Math.max(w,h);
+  const x=M_PAD+(((lon-M_BBOX.minLon)*M_COSLAT)/span)*(M_VB-2*M_PAD);
+  const y=M_PAD+((M_BBOX.maxLat-lat)/span)*(M_VB-2*M_PAD);
+  return [x,y];
+}
+const mapEl={ svg:null, tip:null, side:null, back:null, title:null };
+let mapDepTot={}, mapComedores=[], mapMaxRac=1, mapCurDep=null, mapLevel='pais';
+const isMovil=m=>norm(m).includes('MOVIL');
+
+function mColorDep(dep){ const t=mapDepTot[dep]; if(!t||!t.rac) return "#16263d";
+  const f=t.rac/mapMaxRac, a=[30,58,95], b=[29,78,216], c=a.map((v,i)=>Math.round(v+(b[i]-v)*f));
+  return `rgb(${c[0]},${c[1]},${c[2]})`; }
+function mPath(polys){ let d=""; polys.forEach(ring=>{ ring.forEach((c,i)=>{ const [x,y]=mProject(c[0],c[1]); d+=(i===0?"M":"L")+x.toFixed(2)+" "+y.toFixed(2)+" "; }); d+="Z "; }); return d; }
+function mBounds(polys){ let a=1e9,b=1e9,c=-1e9,d=-1e9; polys.forEach(r=>r.forEach(p=>{ const [x,y]=mProject(p[0],p[1]); a=Math.min(a,x);b=Math.min(b,y);c=Math.max(c,x);d=Math.max(d,y); })); return {minX:a,minY:b,maxX:c,maxY:d}; }
+function mAnim(from,to,dur,done){ const f=from.split(/\s+/).map(Number),t=to.split(/\s+/).map(Number),t0=performance.now();
+  function step(now){ let k=Math.min(1,(now-t0)/dur); const e=1-Math.pow(1-k,3); mapEl.svg.setAttribute('viewBox', f.map((v,i)=>v+(t[i]-v)*e).join(" ")); if(k<1) requestAnimationFrame(step); else if(done) done(); } requestAnimationFrame(step); }
+function mTip(e,html){ mapEl.tip.innerHTML=html; mapEl.tip.style.display="block";
+  const r=mapEl.svg.parentElement.getBoundingClientRect(); let x=e.clientX-r.left+14,y=e.clientY-r.top+14;
+  if(x+250>r.width) x=e.clientX-r.left-250; mapEl.tip.style.left=x+"px"; mapEl.tip.style.top=y+"px"; }
+function mHideTip(){ mapEl.tip.style.display="none"; }
+
+function mBuildData(){
+  const dps=state.dps; mapDepTot={}; mapComedores=[];
+  if(!dps){ mapMaxRac=1; return; }
+  for(const d in dps.depAgg){ mapDepTot[d]={rac:dps.depAgg[d].rac, mon:dps.depAgg[d].fin}; }
+  const ML=modLookup();
+  dps.munAgg.forEach(m=>{ const c=coordComedor(m.dep,m.mun); if(!c) return;
+    const mod = ML[norm(m.dep)+'|'+norm(m.mun)] || (isMovil(m.mun)?'MÓVIL':'FIJO');
+    mapComedores.push({dep:m.dep,com:m.mun,mod,rac:m.rac,mon:m.fin,lat:+c[0].toFixed(4),lon:+c[1].toFixed(4)}); });
+  mapMaxRac=Math.max(1,...Object.values(mapDepTot).map(d=>d.rac));
+}
+
+function mRenderNacional(){
+  mapCurDep=null; mapLevel='pais';
+  mapEl.svg.setAttribute('viewBox',`0 0 ${M_VB} ${M_VB}`); mapEl.svg.innerHTML="";
+  mapEl.back.style.display="none"; mapEl.title.textContent="República de Guatemala";
+  GEO_GT.forEach(ft=>{
+    const path=document.createElementNS(SVGNS,"path"); path.setAttribute("d",mPath(ft.polys));
+    if(ft.tipo==="departamento"){
+      path.setAttribute("class","dep"); path.setAttribute("fill",mColorDep(ft.name));
+      path.addEventListener("click",()=>mSeleccionarDep(ft.name));
+      path.addEventListener("mousemove",e=>{ const t=mapDepTot[ft.name]||{rac:0,mon:0};
+        mTip(e,`<b>${ft.name}</b><br>Raciones: ${fmtN(t.rac)}<br>Monto: ${fmtQ(t.mon)}<br><span style="color:#94A3B8">Clic para ver detalle</span>`); });
+      path.addEventListener("mouseleave",mHideTip);
+    } else { path.setAttribute("class","reclamo"); }
+    mapEl.svg.appendChild(path);
+    const [lx,ly]=mProject(ft.centro[0],ft.centro[1]); const lbl=document.createElementNS(SVGNS,"text");
+    lbl.setAttribute("x",lx); lbl.setAttribute("y",ly);
+    lbl.setAttribute("class", ft.tipo==="departamento"?"deplabel":"reclabel");
+    lbl.textContent = ft.tipo==="departamento"?ft.name:"BELICE · EN RECLAMO";
+    mapEl.svg.appendChild(lbl);
+  });
+  mSidebarNacional();
+}
+function mSeleccionarDep(dep){
+  mapCurDep=dep; mapLevel='departamento';
+  const ft=GEO_GT.find(f=>f.name===dep); if(!ft) return;
+  let b=mBounds(ft.polys); const px=(b.maxX-b.minX)*0.30+2, py=(b.maxY-b.minY)*0.30+2;
+  b={minX:b.minX-px,maxX:b.maxX+px,minY:b.minY-py,maxY:b.maxY+py};
+  const w=b.maxX-b.minX,h=b.maxY-b.minY,sz=Math.max(w,h),vbx=b.minX-(sz-w)/2,vby=b.minY-(sz-h)/2;
+  mapEl.svg.innerHTML="";
+  GEO_GT.forEach(f=>{ const p=document.createElementNS(SVGNS,"path"); p.setAttribute("d",mPath(f.polys));
+    if(f.name===dep){ p.setAttribute("fill",mColorDep(dep)); p.setAttribute("stroke","#BFDBFE"); p.setAttribute("stroke-width","0.5"); }
+    else if(f.tipo==="reclamo"){ p.setAttribute("class","reclamo"); p.setAttribute("opacity","0.5"); }
+    else { p.setAttribute("fill","#0e1a2c"); p.setAttribute("stroke","#1e3a5f"); p.setAttribute("stroke-width","0.25"); p.setAttribute("opacity","0.5"); }
+    mapEl.svg.appendChild(p); });
+  mAnim(mapEl.svg.getAttribute('viewBox'), `${vbx} ${vby} ${sz} ${sz}`, 520, ()=>mMarcadores(dep));
+  mapEl.back.style.display="block"; mapEl.title.textContent=dep; mSidebarDepartamento(dep);
+}
+function mMarcadores(dep){
+  mapEl.svg.querySelectorAll('.marker,.marker-halo').forEach(n=>n.remove());
+  const coms=mapComedores.filter(c=>norm(c.dep)===norm(dep));
+  const vbw=Math.max(mapEl.svg.viewBox.baseVal.width,1);
+  const r=Math.min(0.85,Math.max(0.26,vbw*0.0105));
+  coms.forEach(c=>{ const [x,y]=mProject(c.lon,c.lat); const m=document.createElementNS(SVGNS,"circle");
+    m.setAttribute("cx",x); m.setAttribute("cy",y); m.setAttribute("r",r.toFixed(2));
+    m.setAttribute("class","marker "+(isMovil(c.mod)?"mmovil":"mfijo"));
+    m.setAttribute("data-com",norm(c.com)); m.setAttribute("data-r",r.toFixed(3));
+    m.addEventListener("mouseover",()=>m.setAttribute("r",(r*1.7).toFixed(2)));
+    m.addEventListener("mouseout",()=>m.setAttribute("r",parseFloat(m.getAttribute("data-r")).toFixed(2)));
+    m.addEventListener("click",()=>mZoomComedor(c.lat,c.lon,c.com));
+    m.addEventListener("mousemove",e=>{ const pill=isMovil(c.mod)?'<span class="pill movil">MÓVIL</span>':'<span class="pill fijo">FIJO</span>';
+      mTip(e,`<b>${c.com}</b> ${pill}<br>Raciones (año): ${fmtN(c.rac)}<br>Ejecución: ${fmtQ(c.mon)}<br><span style="color:#94A3B8">Clic para acercar</span>`); });
+    m.addEventListener("mouseleave",mHideTip); mapEl.svg.appendChild(m); });
+}
+function mZoomComedor(lat,lon,com){
+  const [x,y]=mProject(lon,lat); const vb=mapEl.svg.getAttribute('viewBox').split(/\s+/).map(Number);
+  const sz=Math.max(5, Math.max(vb[2],vb[3])*0.42);
+  const to=`${(x-sz/2).toFixed(2)} ${(y-sz/2).toFixed(2)} ${sz.toFixed(2)} ${sz.toFixed(2)}`;
+  mapLevel='comedor'; mapEl.title.textContent=mapCurDep+" · "+com; mapEl.back.style.display="block";
+  mAnim(mapEl.svg.getAttribute('viewBox'), to, 480, ()=>{ mMarcadores(mapCurDep);
+    const sel=mapEl.svg.querySelector('[data-com="'+norm(com)+'"]');
+    if(sel){ const br=parseFloat(sel.getAttribute("data-r")); const halo=document.createElementNS(SVGNS,"circle");
+      halo.setAttribute("cx",sel.getAttribute("cx")); halo.setAttribute("cy",sel.getAttribute("cy"));
+      halo.setAttribute("r",(br*2.6).toFixed(2)); halo.setAttribute("class","marker-halo");
+      halo.setAttribute("fill","none"); halo.setAttribute("stroke","#BFDBFE"); halo.setAttribute("stroke-width",(br*0.5).toFixed(2)); halo.setAttribute("opacity","0.85");
+      sel.parentNode.insertBefore(halo,sel); sel.setAttribute("r",(br*1.6).toFixed(2)); } });
+}
+function mSidebarNacional(){
+  const rank=Object.entries(mapDepTot).sort((a,b)=>b[1].rac-a[1].rac);
+  const totR=Object.values(mapDepTot).reduce((a,v)=>a+v.rac,0), totM=Object.values(mapDepTot).reduce((a,v)=>a+v.mon,0);
+  const rows=rank.map(([d,t])=>`<div class="muni" onclick="mSeleccionarDep('${d.replace(/'/g,"\\'")}')"><span class="nm">${d}</span><span class="mt">${fmtN(t.rac)} rac · ${fmtQk(t.mon)}</span></div>`).join("");
+  mapEl.side.innerHTML = rank.length? `
+    <h2>Resumen nacional 2026</h2>
+    <div class="stat"><div class="k">Raciones ejecutadas (año)</div><div class="v">${fmtN(totR)}</div></div>
+    <div class="stat"><div class="k">Monto ejecutado (año)</div><div class="v">${fmtQ(totM)}</div></div>
+    <h4>Ejecución por departamento</h4>${rows}`
+    : `<div class="empty">Cargue el archivo <b>Ejecución DPS 2026</b> para colorear el mapa y ver el detalle por departamento.</div>`;
+}
+function mSidebarDepartamento(dep){
+  const coms=mapComedores.filter(c=>norm(c.dep)===norm(dep)); const t=mapDepTot[dep]||{rac:0,mon:0};
+  const nF=coms.filter(c=>!isMovil(c.mod)).length, nM=coms.filter(c=>isMovil(c.mod)).length;
+  coms.sort((a,b)=>b.rac-a.rac);
+  const rows=coms.map(c=>{ const pill=isMovil(c.mod)?'<span class="pill movil">MÓVIL</span>':'<span class="pill fijo">FIJO</span>';
+    return `<div class="muni" onclick="mZoomComedor(${c.lat},${c.lon},'${c.com.replace(/'/g,"\\'")}')"><span class="nm">${c.com} ${pill}</span><span class="mt">${fmtN(c.rac)} rac<br>${fmtQk(c.mon)}</span></div>`; }).join("");
+  mapEl.side.innerHTML = `
+    <h2>${dep}</h2>
+    <div class="stat"><div class="k">Raciones (departamento)</div><div class="v">${fmtN(t.rac)}</div></div>
+    <div class="stat"><div class="k">Monto ejecutado</div><div class="v">${fmtQ(t.mon)}</div></div>
+    <div class="stat"><div class="k">Comedores</div><div class="v">${coms.length} <span style="font-size:12px;color:#94A3B8">(${nF} fijos · ${nM} móviles)</span></div></div>
+    <h4>Detalle por comedor / municipio</h4>${rows||'<div class="empty">Sin comedores localizados.</div>'}`;
+}
+function renderMapa(){
+  mBuildData(); mRenderNacional();
+}
+
+/* ============================================================
+   GRÁFICAS (Chart.js)
+   ============================================================ */
+if(window.Chart){
+  Chart.defaults.color='#94A3B8';
+  Chart.defaults.borderColor='rgba(30,58,95,.6)';
+  Chart.defaults.font.family="'Inter',system-ui,sans-serif";
+  Chart.defaults.font.size=11.5;
+  Chart.defaults.plugins.legend.labels.usePointStyle=true;
+  Chart.defaults.plugins.legend.labels.boxWidth=8;
+  Chart.defaults.plugins.legend.labels.padding=14;
+}
+const PALETTE=['#3B82F6','#60A5FA','#34D399','#FBBF24','#F87171','#A78BFA','#22D3EE','#FB923C','#4ADE80','#F472B6','#818CF8','#2DD4BF','#FCD34D','#FCA5A5','#C084FC','#38BDF8','#86EFAC','#FDBA74','#F9A8D4','#93C5FD','#5EEAD4','#FDE68A'];
+const charts={};
+function destroyCharts(){ for(const k in charts){ try{charts[k].destroy();}catch(e){} delete charts[k]; } }
+const gtQ=v=>'Q '+Number(v).toLocaleString('es-GT',{maximumFractionDigits:0});
+function tt(cb){ return {callbacks:cb}; }
+
+function renderCharts(){
+  const host=$('#graf-content'); destroyCharts();
+  const p1=state.semana, p2=state.quincena, p3=state.dps;
+  if(!p1 && !p3){
+    host.innerHTML = `<div class="card"><div class="empty">
+      <svg width="44" height="44" viewBox="0 0 24 24" fill="none"><rect x="3" y="12" width="4" height="8" rx="1" stroke="#3B82F6" stroke-width="1.5"/><rect x="10" y="7" width="4" height="13" rx="1" stroke="#60A5FA" stroke-width="1.5"/><rect x="17" y="3" width="4" height="17" rx="1" stroke="#34D399" stroke-width="1.5"/></svg>
+      <div>Cargue arriba los libros de Excel. Las gráficas semanales y anuales aparecerán aquí en cuanto haya datos.</div></div></div>`;
+    return;
+  }
+  let h='';
+  /* ---- Semanal ---- */
+  h+=`<div class="sect-h"><span class="k">Ejecución semanal · Cuota por Semana</span><span class="ln"></span></div>`;
+  if(p1){
+    h+=`<div class="grid">
+      <div class="card"><h3>Raciones por semana <span class="src">Servidas vs proyección</span></h3><div class="csub">Semanas ya servidas contra las proyectadas del mes.</div><div class="chartbox"><canvas id="c_sem_rac"></canvas></div></div>
+      <div class="card"><h3>Ejecución financiera semanal <span class="src">Quetzales</span></h3><div class="csub">Monto ejecutado y proyectado por semana.</div><div class="chartbox"><canvas id="c_sem_fin"></canvas></div></div>
+    </div>`;
+  } else { h+=emptyBlock('Cargue <b>Cuota por Semana</b> para ver la ejecución semanal.'); }
+
+  /* ---- Anual ---- */
+  h+=`<div class="sect-h"><span class="k">Ejecución anual 2026 · Ejecución DPS</span><span class="ln"></span></div>`;
+  if(p3){
+    h+=`<div class="grid">
+      <div class="card full"><h3>Tendencia física mensual <span class="src">Raciones ejecutadas / mes</span></h3><div class="csub">Raciones servidas mes a mes durante 2026 (solo meses con ejecución).</div><div class="chartbox"><canvas id="c_mes"></canvas></div></div>
+      <div class="card full"><h3>Ejecución financiera por departamento <span class="src">Acumulado 2026</span></h3><div class="chartbox tall" style="height:460px"><canvas id="c_dep_fin"></canvas></div></div>
+      <div class="card"><h3>Participación de raciones <span class="src">Por departamento</span></h3><div class="csub">Peso de cada departamento en las raciones del año.</div><div class="chartbox"><canvas id="c_dep_rac"></canvas></div></div>
+    </div>`;
+  } else { h+=emptyBlock('Cargue <b>Ejecución DPS 2026</b> para ver la tendencia mensual y el ranking por departamento.'); }
+
+  /* ---- Comedores ---- */
+  if(p2){
+    h+=`<div class="sect-h"><span class="k">Comedores y modalidades · Cuota Quincena</span><span class="ln"></span></div>`;
+    h+=`<div class="grid">
+      <div class="card full"><h3>Top 10 comedores por ejecución <span class="src">Quetzales</span></h3><div class="chartbox tall"><canvas id="c_top"></canvas></div></div>
+      <div class="card"><h3>Modalidad de comedor <span class="src">Fijo / Móvil</span></h3><div class="chartbox"><canvas id="c_mod"></canvas></div></div>
+      <div class="card"><h3>Modalidad de contratación <span class="src">Comedores</span></h3><div class="chartbox"><canvas id="c_contr"></canvas></div></div>
+      <div class="card"><h3>Raciones servidas por tiempo <span class="src">Desayuno / Almuerzo</span></h3><div class="chartbox"><canvas id="c_da"></canvas></div></div>
+    </div>`;
+  }
+  host.innerHTML=h;
+
+  /* ===== build charts ===== */
+  if(p1){
+    const lbls=p1.semanas.map(s=>s.label);
+    charts.sem_rac=new Chart($('#c_sem_rac'),{type:'bar',data:{labels:lbls,datasets:[{
+      label:'Raciones', data:p1.semanas.map(s=>s.rac),
+      backgroundColor:p1.semanas.map(s=>s.tipo==='servida'?'#3B82F6':'rgba(251,191,36,.75)'),
+      borderColor:p1.semanas.map(s=>s.tipo==='servida'?'#60A5FA':'#FBBF24'), borderWidth:1, borderRadius:6 }]},
+      options:{maintainAspectRatio:false,plugins:{legend:{display:false},
+        tooltip:tt({label:c=>` ${fmtN(c.raw)} raciones (${p1.semanas[c.dataIndex].tipo})`})},
+        scales:{y:{ticks:{callback:v=>fmtN(v)},grid:{color:'rgba(30,58,95,.35)'}},x:{grid:{display:false}}}}});
+    charts.sem_fin=new Chart($('#c_sem_fin'),{type:'line',data:{labels:lbls,datasets:[{
+      label:'Ejecución (Q)', data:p1.semanas.map(s=>s.fin), tension:.35, fill:true,
+      backgroundColor:'rgba(52,211,153,.12)', borderColor:'#34D399', pointBackgroundColor:'#34D399', pointRadius:4, borderWidth:2 }]},
+      options:{maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:tt({label:c=>' '+fmtQ(c.raw)})},
+        scales:{y:{ticks:{callback:v=>gtQ(v)},grid:{color:'rgba(30,58,95,.35)'}},x:{grid:{display:false}}}}});
+  }
+  if(p3){
+    const mIdx=[]; p3.fisMes.forEach((v,i)=>{ if(v>0||p3.finMes[i]>0) mIdx.push(i); });
+    charts.mes=new Chart($('#c_mes'),{type:'line',data:{labels:mIdx.map(i=>MESES[i]),datasets:[{
+      label:'Raciones', data:mIdx.map(i=>p3.fisMes[i]), tension:.35, fill:true,
+      backgroundColor:'rgba(59,130,246,.14)', borderColor:'#3B82F6', pointBackgroundColor:'#3B82F6', pointRadius:4, borderWidth:2 }]},
+      options:{maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:tt({label:c=>' '+fmtN(c.raw)+' raciones'})},
+        scales:{y:{ticks:{callback:v=>fmtN(v)},grid:{color:'rgba(30,58,95,.35)'}},x:{grid:{display:false}}}}});
+
+    const dep=Object.entries(p3.depAgg).sort((a,b)=>b[1].fin-a[1].fin);
+    charts.dep_fin=new Chart($('#c_dep_fin'),{type:'bar',data:{labels:dep.map(d=>d[0]),datasets:[{
+      label:'Ejecución (Q)', data:dep.map(d=>d[1].fin), backgroundColor:'#2563EB', borderColor:'#60A5FA', borderWidth:1, borderRadius:5 }]},
+      options:{indexAxis:'y',maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:tt({label:c=>' '+fmtQ(c.raw)})},
+        scales:{x:{ticks:{callback:v=>gtQ(v)},grid:{color:'rgba(30,58,95,.35)'}},y:{grid:{display:false}}}}});
+
+    const drac=Object.entries(p3.depAgg).sort((a,b)=>b[1].rac-a[1].rac);
+    const topN=drac.slice(0,8), otros=drac.slice(8).reduce((a,d)=>a+d[1].rac,0);
+    const dl=topN.map(d=>d[0]).concat(otros>0?['Otros']:[]);
+    const dv=topN.map(d=>d[1].rac).concat(otros>0?[otros]:[]);
+    charts.dep_rac=new Chart($('#c_dep_rac'),{type:'doughnut',data:{labels:dl,datasets:[{data:dv,backgroundColor:PALETTE,borderColor:'#0d1a2c',borderWidth:2}]},
+      options:{maintainAspectRatio:false,cutout:'58%',plugins:{legend:{position:'right'},
+        tooltip:tt({label:c=>{const t=dv.reduce((a,b)=>a+b,0);return ' '+fmtN(c.raw)+' ('+(c.raw/t*100).toFixed(1)+'%)';}})}}});
+  }
+  if(p2){
+    const top=p2.comedores.slice().sort((a,b)=>b.ejec-a.ejec).slice(0,10);
+    charts.top=new Chart($('#c_top'),{type:'bar',data:{labels:top.map(c=>c.com+' · '+c.dep),datasets:[{
+      label:'Ejecución (Q)', data:top.map(c=>c.ejec), backgroundColor:'#34D399', borderColor:'#6EE7B7', borderWidth:1, borderRadius:5 }]},
+      options:{indexAxis:'y',maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:tt({label:c=>' '+fmtQ(c.raw)})},
+        scales:{x:{ticks:{callback:v=>gtQ(v)},grid:{color:'rgba(30,58,95,.35)'}},y:{grid:{display:false},ticks:{font:{size:10}}}}}});
+    charts.mod=new Chart($('#c_mod'),{type:'doughnut',data:{labels:['Fijo','Móvil'],datasets:[{data:[p2.mFijo,p2.mMovil],backgroundColor:['#3B82F6','#FBBF24'],borderColor:'#0d1a2c',borderWidth:2}]},
+      options:{maintainAspectRatio:false,cutout:'60%',plugins:{legend:{position:'bottom'},tooltip:tt({label:c=>' '+c.raw+' comedores'})}}});
+    const ck=Object.keys(p2.contr), cv=ck.map(k=>p2.contr[k]);
+    charts.contr=new Chart($('#c_contr'),{type:'doughnut',data:{labels:ck.map(k=>k.charAt(0)+k.slice(1).toLowerCase()),datasets:[{data:cv,backgroundColor:['#60A5FA','#A78BFA','#34D399','#FBBF24'],borderColor:'#0d1a2c',borderWidth:2}]},
+      options:{maintainAspectRatio:false,cutout:'60%',plugins:{legend:{position:'bottom'},tooltip:tt({label:c=>' '+c.raw+' comedores'})}}});
+    charts.da=new Chart($('#c_da'),{type:'doughnut',data:{labels:['Desayuno','Almuerzo'],datasets:[{data:[p2.totDes,p2.totAlm],backgroundColor:['#FBBF24','#3B82F6'],borderColor:'#0d1a2c',borderWidth:2}]},
+      options:{maintainAspectRatio:false,cutout:'60%',plugins:{legend:{position:'bottom'},
+        tooltip:tt({label:c=>{const t=p2.totDes+p2.totAlm;return ' '+fmtN(c.raw)+' ('+(c.raw/t*100).toFixed(1)+'%)';}})}}});
+  }
+}
+
+/* ============================================================
+   CLASIFICADOR DE POBLACIÓN (isotipo / "humanitos")
+   ============================================================ */
+let clasPeriod=null, clasDim='edad';
+const CLAS_COLORS={
+  sexo:{'Femenino':'#FB923C','Masculino':'#3B82F6'},
+  edad:{'Niñez':'#60A5FA','Juventud':'#34D399','Adultos':'#FBBF24','Tercera Edad':'#F472B6'},
+  etnia:{'Maya':'#34D399','Xinca':'#FBBF24','Garífuna':'#FB923C','Mestizo':'#3B82F6','Otro':'#94A3B8'}
+};
+const DIM_LABEL={sexo:'sexo',edad:'edad',etnia:'pueblo'};
+const HFIG_PATH='M5 5.4c-2 0-3.2 1.4-3.3 3.6L1.6 13.6h6.8l-.1-4.6C8.2 6.8 7 5.4 5 5.4Z';
+const CROWD_COLS=34, CROWD_N=442;
+const AGE_META=[
+  {key:'Niñez',name:'Primera infancia y niñez',range:'0 a 12 años',color:'#60A5FA',
+   icon:c=>`<svg width="30" height="30" viewBox="0 0 32 32" fill="${c}"><circle cx="16" cy="10" r="4.4"/><path d="M16 15.5c-3.6 0-6.3 2.4-6.3 6.3V25h12.6v-3.2c0-3.9-2.7-6.3-6.3-6.3Z"/></svg>`},
+  {key:'Juventud',name:'Adolescencia y juventud',range:'13 a 30 años',color:'#34D399',
+   icon:c=>`<svg width="30" height="30" viewBox="0 0 32 32" fill="${c}"><circle cx="11" cy="10" r="4"/><circle cx="21" cy="10" r="4"/><path d="M11 15c-3.3 0-6 2.4-6 6v3.5h12V21c0-3.6-2.7-6-6-6Z"/><path d="M21 15c-1 0-1.9.2-2.7.6 1.7 1.2 2.7 3.1 2.7 5.4v3.5h6V21c0-3.6-2.7-6-6-6Z"/></svg>`},
+  {key:'Adultos',name:'Adultez',range:'30 a 60 años',color:'#FBBF24',
+   icon:c=>`<svg width="30" height="30" viewBox="0 0 32 32" fill="${c}"><circle cx="16" cy="9" r="5"/><path d="M16 15.5c-4.2 0-7.5 2.8-7.5 7.5V26.5h15V23c0-4.7-3.3-7.5-7.5-7.5Z"/></svg>`},
+  {key:'Tercera Edad',name:'Personas mayores',range:'más de 60 años',color:'#F472B6',
+   icon:c=>`<svg width="30" height="30" viewBox="0 0 32 32" fill="${c}"><circle cx="14" cy="9" r="4.6"/><path d="M14 15c-3.9 0-7 2.6-7 7v4.5h13.6V22c0-4.4-2.9-7-6.6-7Z"/><rect x="21.4" y="12.5" width="1.9" height="14" rx=".95"/></svg>`}
+];
+const AGE_UNIT=30000, AGE_MAX=80;
+const miniFig=(c,i)=>`<svg width="9" height="13" viewBox="0 0 10 14" fill="${c}" style="animation-delay:${Math.min(i*11,650)}ms"><circle cx="5" cy="2.6" r="2.3"/><path d="${HFIG_PATH}"/></svg>`;
+
+function dimEntries(cur,dim){ return Object.keys(cur[dim]).map(name=>({name,value:cur[dim][name],color:CLAS_COLORS[dim][name]})); }
+function assignCrowd(cur,dim){
+  const es=dimEntries(cur,dim), per=cur.raciones/CROWD_N;
+  let counts=es.map(e=> e.value>0 ? Math.max(1, Math.round(e.value/per)) : 0);
+  let sum=counts.reduce((a,b)=>a+b,0), guard=0;
+  // reconciliar a CROWD_N tomando/dando de la categoría más grande, sin bajar de 1 en categorías con datos
+  while(sum>CROWD_N && guard++<2*CROWD_N){ let bi=-1,bv=1; counts.forEach((c,i)=>{ if(c>bv){bv=c;bi=i;} }); if(bi<0) break; counts[bi]--; sum--; }
+  guard=0;
+  while(sum<CROWD_N && guard++<2*CROWD_N){ let bi=0,bv=-1; counts.forEach((c,i)=>{ if(c>bv){bv=c;bi=i;} }); counts[bi]++; sum++; }
+  const out=[]; es.forEach((e,i)=>{ for(let j=0;j<counts[i];j++) out.push(e.color); });
+  return out.slice(0,CROWD_N);
+}
+
+function countUp(el,target,dur){ dur=dur||1200; const t0=performance.now();
+  function step(now){ const k=Math.min(1,(now-t0)/dur), e=1-Math.pow(1-k,3);
+    el.textContent=fmtN(Math.round(target*e)); if(k<1) requestAnimationFrame(step); else el.textContent=fmtN(target); }
+  requestAnimationFrame(step); }
+
+function legendHTML(cur,dim){
+  const es=dimEntries(cur,dim).sort((a,b)=>b.value-a.value), tot=cur.raciones;
+  return `<h4>Distribución por ${DIM_LABEL[dim]}</h4>` + es.map(e=>`
+    <div class="leg-row"><div class="leg-top"><span class="leg-sw" style="background:${e.color}"></span>
+      <span class="leg-nm">${e.name}</span><span class="leg-pct">${(e.value/tot*100).toFixed(1)}%</span></div>
+      <div class="leg-ct">${fmtN(e.value)} personas</div>
+      <div class="leg-bar"><div class="leg-fill" data-w="${(e.value/tot*100).toFixed(1)}" style="width:0%;background:${e.color}"></div></div>
+    </div>`).join('');
+}
+function animateLegendBars(host){ requestAnimationFrame(()=>host.querySelectorAll('.leg-fill').forEach(f=>{ f.style.width=f.dataset.w+'%'; })); }
+
+function crowdSVG(colors){
+  const step=13, stepY=17, cols=CROWD_COLS, W=cols*step, rows=Math.ceil(colors.length/cols), H=rows*stepY;
+  let uses=''; colors.forEach((c,i)=>{ const x=(i%cols)*step, y=Math.floor(i/cols)*stepY;
+    uses+=`<use href="#hfig" x="${x}" y="${y}" width="10" height="14" fill="${c}"/>`; });
+  return `<svg viewBox="0 0 ${W} ${H}"><defs><symbol id="hfig" viewBox="0 0 10 14"><circle cx="5" cy="2.6" r="2.3"/><path d="${HFIG_PATH}"/></symbol></defs>${uses}</svg>`;
+}
+function paintCrowdIntro(){ const cr=$('#clas-crowd'); if(!cr) return;
+  cr.querySelectorAll('use').forEach((u,i)=>u.style.transitionDelay=Math.min(i*1.3,650)+'ms');
+  requestAnimationFrame(()=>requestAnimationFrame(()=>cr.classList.add('shown'))); }
+function recolorCrowd(cur){ const cr=$('#clas-crowd'); if(!cr) return; const colors=assignCrowd(cur,clasDim);
+  cr.querySelectorAll('use').forEach((u,i)=>{ u.style.transitionDelay=Math.min(i*0.7,450)+'ms'; u.setAttribute('fill',colors[i]); }); }
+
+function setDim(dim){ if(dim===clasDim) return; clasDim=dim;
+  document.querySelectorAll('#clas-dimtoggle .dbtn').forEach(b=>b.classList.toggle('on',b.dataset.dim===dim));
+  const cur=clasPeriod;
+  recolorCrowd(cur);
+  const leg=$('#clas-legend'); leg.innerHTML=legendHTML(cur,dim); animateLegendBars(leg);
+}
+function setPeriod(rec){ clasPeriod=rec; renderClasificador(); }
+
+function renderClasificador(){
+  const host=$('#clasif-content'); const p=state.clasificador;
+  if(!p){ host.innerHTML=`<div class="card"><div class="empty">
+      <svg width="42" height="42" viewBox="0 0 24 24" fill="none"><circle cx="8" cy="8" r="3" stroke="#3B82F6" stroke-width="1.5"/><circle cx="16" cy="9" r="2.4" stroke="#34D399" stroke-width="1.4"/><path d="M3 19c0-2.8 2.2-5 5-5s5 2.2 5 5M14 19c0-2.3 1.4-4.2 3-4.7" stroke="#3B82F6" stroke-width="1.5" stroke-linecap="round"/></svg>
+      <div>Cargue el archivo <b>Clasificador Global</b> para ver el retrato de la población atendida por sexo, edad y pueblos.</div></div></div>`;
+    return; }
+  const periodos=[p.total,...p.periodos];
+  if(!clasPeriod || !periodos.some(x=>x.label===clasPeriod.label)) clasPeriod=p.total;
+  const cur=clasPeriod;
+  const per=Math.round(cur.raciones/CROWD_N);
+
+  const chips=periodos.map(x=>`<button class="pchip ${x.label===cur.label?'on':''}" data-lbl="${x.label}">${x.label}</button>`).join('');
+  const crowd=crowdSVG(assignCrowd(cur,clasDim));
+
+  // ethnic
+  const eth=dimEntries(cur,'etnia').sort((a,b)=>b.value-a.value); const tot=cur.raciones;
+  const ethBar=eth.map(e=>`<div class="eth-seg" data-w="${(e.value/tot*100)}" style="width:0%;background:${e.color}" title="${e.name}"></div>`).join('');
+  const ethLeg=eth.map(e=>`<div class="eth-item"><span class="sw" style="background:${e.color}"></span><span class="t"><b>${e.name}</b> <span>${fmtN(e.value)} · ${(e.value/tot*100).toFixed(e.value/tot<0.01?2:1)}%</span></span></div>`).join('');
+  const indig=cur.etnia['Maya']+cur.etnia['Xinca']+cur.etnia['Garífuna'];
+
+  // age rows
+  const ageRows=AGE_META.map(a=>{ const v=cur.edad[a.key]||0; const nf=Math.max(1,Math.min(AGE_MAX,Math.round(v/AGE_UNIT)));
+    let figs=''; for(let i=0;i<nf;i++) figs+=miniFig(a.color,i);
+    return `<div class="age-row">
+      <div class="age-ic">${a.icon(a.color)}</div>
+      <div class="age-meta"><div class="an">${a.name}</div><div class="ar">${a.range}</div></div>
+      <div class="age-figs">${figs}</div>
+      <div class="age-val"><div class="n">${fmtN(v)}</div><div class="p">${(v/tot*100).toFixed(1)}%</div></div>
+    </div>`; }).join('');
+
+  host.innerHTML=`
+    <div class="clas-hero">
+      <div class="htx">
+        <div class="hlabel">Población atendida · ${cur.label}</div>
+        <div class="clas-num" id="clas-total">0</div>
+        <div class="hsub">Personas que recibieron una comida del programa. Cada ración servida equivale a una persona atendida.</div>
+      </div>
+      <div class="spacer"></div>
+      <div class="period-chips" id="clas-periods">${chips}</div>
+    </div>
+
+    <div class="clas-main">
+      <div class="crowd-card">
+        <div class="dim-toggle" id="clas-dimtoggle">
+          <button class="dbtn ${clasDim==='sexo'?'on':''}" data-dim="sexo">Sexo</button>
+          <button class="dbtn ${clasDim==='edad'?'on':''}" data-dim="edad">Edad</button>
+          <button class="dbtn ${clasDim==='etnia'?'on':''}" data-dim="etnia">Pueblo</button>
+        </div>
+        <div class="crowd-hint">Cada figura representa ≈ <b style="color:#93C5FD">${fmtN(per)}</b> personas; toda categoría con población atendida se muestra con al menos una figura. Toque una dimensión para recolorear.</div>
+        <div class="crowd" id="clas-crowd">${crowd}</div>
+      </div>
+      <div class="clas-legend" id="clas-legend">${legendHTML(cur,clasDim)}</div>
+    </div>
+
+    <div class="age-picto">
+      <h3>Población por grupo etario</h3>
+      <div class="csub">Cada figura ≈ ${fmtN(AGE_UNIT)} personas. La longitud de cada fila es proporcional al grupo.</div>
+      ${ageRows}
+    </div>
+
+    <div class="eth-card">
+      <h3>Pertenencia a pueblos</h3>
+      <div class="csub">Composición de la población atendida por pueblo de pertenencia.</div>
+      <div class="eth-bar" id="clas-ethbar">${ethBar}</div>
+      <div class="eth-legend">${ethLeg}</div>
+      <div class="eth-note">Población de <b>pueblos indígenas y afrodescendiente</b> atendida: <b>${fmtN(indig)}</b> personas — Maya ${fmtN(cur.etnia['Maya'])}, Garífuna ${fmtN(cur.etnia['Garífuna'])}, Xinca ${fmtN(cur.etnia['Xinca'])}.</div>
+    </div>`;
+
+  // wire + animate
+  countUp($('#clas-total'), cur.raciones);
+  paintCrowdIntro();
+  animateLegendBars($('#clas-legend'));
+  requestAnimationFrame(()=>$('#clas-ethbar').querySelectorAll('.eth-seg').forEach(s=>{ s.style.width=s.dataset.w+'%'; }));
+  $('#clas-periods').querySelectorAll('.pchip').forEach(b=>b.addEventListener('click',()=>{ const r=periodos.find(x=>x.label===b.dataset.lbl); if(r) setPeriod(r); }));
+  $('#clas-dimtoggle').querySelectorAll('.dbtn').forEach(b=>b.addEventListener('click',()=>setDim(b.dataset.dim)));
+}
+
+/* ============================================================
+   Pestañas + arranque
+   ============================================================ */
+let activeTab='graf';
+const TABS=['graf','clasif','mapa'];
+function switchTab(t){
+  activeTab=t;
+  TABS.forEach(x=>{ $('#tab-'+x).classList.toggle('active',t===x); $('#panel-'+x).classList.toggle('show',t===x); });
+  renderActive();
+}
+function renderActive(){
+  if(activeTab==='graf') renderCharts();
+  else if(activeTab==='clasif') renderClasificador();
+  else { renderGauges(); renderMapa(); }
+}
+function init(){
+  mapEl.svg=$('#svgmap'); mapEl.tip=$('#maptip'); mapEl.side=$('#mapside'); mapEl.back=$('#mapback'); mapEl.title=$('#maptitle');
+  mapEl.back.addEventListener('click',()=>{ if(mapLevel==='comedor'&&mapCurDep){ mSeleccionarDep(mapCurDep); }
+    else { mAnim(mapEl.svg.getAttribute('viewBox'),`0 0 ${M_VB} ${M_VB}`,420,mRenderNacional); } });
+  wireDrop('semana'); wireDrop('dps'); wireDrop('clasif');
+  const ft=$('#feed-toggle');
+  if(ft) ft.addEventListener('click',()=>{ const f=$('#feed'); const c=f.classList.toggle('collapsed');
+    ft.classList.toggle('collapsed',c); $('#fh-txt').textContent=c?'Mostrar':'Ocultar'; ft.setAttribute('aria-expanded',String(!c)); });
+  updateFeedStatus();
+  TABS.forEach(x=>$('#tab-'+x).addEventListener('click',()=>switchTab(x)));
+  renderActive();
+}
+window.mSeleccionarDep=mSeleccionarDep; window.mZoomComedor=mZoomComedor;
+document.addEventListener('DOMContentLoaded',init);
+</script>
+</body>
+</html>
