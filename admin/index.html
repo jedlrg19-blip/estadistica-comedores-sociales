@@ -1,8 +1,11 @@
 <!doctype html>
 <html lang="es"><head><meta charset="utf-8"><title>Administración · Tablero Comedores Sociales</title>
-<meta name="robots" content="noindex">
-<meta http-equiv="refresh" content="0;url=../?editor=1"></head>
+<meta name="robots" content="noindex"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
 <body style="font-family:system-ui;background:#0A1120;color:#e2e8f0;padding:32px">
-<p>Abriendo el tablero en modo administrador… <a href="../?editor=1" style="color:#60a5fa">continuar</a></p>
-<!-- Proteja la ruta /admin* con Cloudflare Access (ver GUIA_ADMIN.md). -->
+<p>Abriendo el tablero en modo administrador… <a href="../" style="color:#60a5fa">continuar</a></p>
+<script>
+/* Esta ruta (/admin/) se protege con Cloudflare Access; solo quien pase por aquí activa el modo administrador. */
+try{ sessionStorage.setItem('mides_admin','1'); }catch(e){}
+location.replace('../');
+</script>
 </body></html>

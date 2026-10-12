@@ -553,6 +553,7 @@ html[data-theme="light"] .eyebrow{-webkit-text-fill-color:#0F6CBD;}
 html[data-theme="light"] .mlegend .sw[style*="#1d4ed8"]{background:#0F6CBD!important;} html[data-theme="light"] .mlegend .sw[style*="#1e3a5f"]{background:#C6DEF7!important;}
 html[data-theme="light"] .ppct{color:#107C10!important;-webkit-text-fill-color:#107C10!important;background:none!important;} html[data-theme="light"] .pcard [style*="FBBF24"],html[data-theme="light"] .pcard [style*="FB923C"]{color:#C2410C!important;}
 html[data-theme="light"] .leg-fill,html[data-theme="light"] .track{background:#E1DFDD;}
+html[data-theme="light"] .mlegend .sw[style*="#242c39"]{background:#EDEBE9!important;border-color:#A19F9D!important;}
 @media print{ html[data-theme="light"],html[data-theme="light"] body{background:#fff!important;} }
 
 /* ===== Gráficas estilo tablero (Power BI) ===== */
@@ -566,6 +567,39 @@ html[data-theme="light"] .insight{background:#EBF3FC;}
 .heat .hc:hover{transform:scale(1.12);position:relative;z-index:2;box-shadow:0 4px 12px rgba(0,0,0,.35);}
 .heat .ht{justify-content:flex-end;color:var(--txt);font-weight:700;font-variant-numeric:tabular-nums;padding-right:2px;}
 .heatleg{display:flex;align-items:center;gap:8px;font-size:10.5px;color:var(--muted);margin-top:10px;} .heatleg i{display:block;width:140px;height:8px;border-radius:99px;}
+
+/* ===== Guía de lectura (la página se explica sola) ===== */
+.howto{display:flex;gap:12px;align-items:flex-start;padding:12px 16px;margin:0 0 16px;border-radius:12px;border:1px solid var(--line);background:var(--panel2);font-size:13px;line-height:1.55;color:var(--txt);}
+.howto .hi{flex:0 0 auto;width:28px;height:28px;border-radius:9px;display:grid;place-items:center;background:rgba(59,130,246,.16);color:var(--accent2);font:700 15px 'Space Grotesk';}
+.howto b{font-weight:700;} .howto .tips{display:flex;gap:14px;flex-wrap:wrap;margin-top:6px;font-size:12px;color:var(--muted);}
+.howto .tips span::before{content:"› ";color:var(--accent2);font-weight:700;}
+html[data-theme="light"] .howto{background:#EBF3FC;border-color:#B4D6FA;} html[data-theme="light"] .howto .hi{background:#118DFF;color:#fff;}
+.gloss{margin:18px 0 0;padding:12px 16px;border:1px solid var(--line);border-radius:12px;background:var(--panel2);font-size:12.5px;line-height:1.6;color:var(--muted);}
+.gloss summary{cursor:pointer;font-weight:700;color:var(--txt);} .gloss dl{display:grid;grid-template-columns:auto 1fr;gap:6px 16px;margin:10px 0 0;} .gloss dt{font-weight:700;color:var(--txt);} .gloss dd{margin:0;}
+.semaforo{display:flex;gap:16px;flex-wrap:wrap;font-size:12px;color:var(--muted);margin:2px 0 14px;} .semaforo i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px;vertical-align:-1px;}
+/* ===== Clasificador: respuestas de un vistazo ===== */
+.q-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin:0 0 14px;}
+.q-card{padding:18px;border-radius:16px;border:1px solid var(--glass-brd);background:var(--glass);}
+.q-card .qt{font:600 11px 'Inter';letter-spacing:.1em;text-transform:uppercase;color:var(--muted);}
+.q-card .qbig{font:700 40px 'Space Grotesk';letter-spacing:-.02em;color:var(--accent3);margin:6px 0 2px;line-height:1;}
+.q-card .qsent{font-size:13px;line-height:1.4;color:var(--txt);min-height:36px;}
+.q-bar{display:flex;gap:2px;height:14px;margin:14px 0 12px;border-radius:99px;overflow:hidden;} .q-bar i{display:block;height:100%;}
+.q-row{display:flex;align-items:center;gap:9px;font-size:12.5px;padding:5px 0;border-top:1px solid rgba(148,163,184,.12);}
+.q-row .d{width:10px;height:10px;border-radius:3px;flex:0 0 auto;} .q-row .n{flex:1;color:var(--txt);} .q-row b{font-variant-numeric:tabular-nums;} .q-row .r{color:var(--muted);font-size:11.5px;min-width:78px;text-align:right;font-variant-numeric:tabular-nums;}
+html[data-theme="light"] .q-card{background:#fff!important;border:1px solid var(--line)!important;box-shadow:var(--shadow);} html[data-theme="light"] .q-card .qbig{color:#0F6CBD;}
+@media(max-width:1000px){.q-grid{grid-template-columns:1fr;}}
+
+/* ===== Diálogo Publicar datos ===== */
+.pub-ov{position:fixed;inset:0;z-index:9999;background:rgba(2,6,14,.62);display:grid;place-items:center;padding:16px;}
+.pub-box{width:min(620px,100%);max-height:92vh;overflow:auto;background:var(--panel);color:var(--txt);border:1px solid var(--line2);border-radius:16px;padding:22px;box-shadow:0 30px 80px rgba(0,0,0,.5);}
+.pub-box h3{margin:0 0 4px;font:700 18px 'Space Grotesk';} .pub-box p{margin:6px 0;font-size:12.5px;line-height:1.55;color:var(--muted);}
+.pub-box ul{margin:10px 0;padding:0;list-style:none;font-size:12.5px;} .pub-box li{padding:7px 10px;border:1px solid var(--line);border-radius:9px;margin-bottom:6px;background:var(--panel2);display:flex;justify-content:space-between;gap:10px;}
+.pub-box li code,.pub-box code{font:11.5px ui-monospace,Menlo,monospace;color:var(--accent2);}
+.pub-box label{display:block;font:600 11px 'Inter';letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:14px 0 5px;}
+.pub-box input[type=password],.pub-box input[type=text]{width:100%;padding:10px 12px;border-radius:10px;border:1px solid var(--line2);background:var(--panel2);color:var(--txt);font:13px 'Inter';}
+.pub-box .row{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px;align-items:center;}
+.pub-box .st{font-size:12.5px;margin-top:12px;line-height:1.5;} .pub-box .st.err{color:#F87171;} .pub-box .st.ok{color:#34D399;}
+.pub-box details{margin-top:12px;font-size:12px;color:var(--muted);} .pub-box summary{cursor:pointer;color:var(--accent2);font-weight:600;}
 </style>
 </head>
 <body>
@@ -606,7 +640,7 @@ html[data-theme="light"] .insight{background:#EBF3FC;}
   <div class="feed-head" id="feed-head">
     <div class="fh-left"><span class="fh-title">Fuentes de datos</span><span class="fh-status" id="feed-status">0 de 3 cargadas</span></div>
     <div class="fh-right">
-      <button class="fh-pub" id="feed-publish" style="display:none" title="Genera un archivo datos.json para publicar en el sitio (modo solo lectura)">Publicar datos</button>
+      <button class="fh-pub" id="feed-publish" style="display:none" title="Sube los archivos cargados al repositorio de GitHub para que el sitio en vivo se actualice">Publicar datos</button>
       <button class="fh-clear" id="feed-clear" style="display:none" title="Elimina los archivos guardados en este dispositivo">Borrar datos guardados</button>
       <button class="fh-toggle" id="feed-toggle" aria-expanded="true"><span id="fh-txt">Ocultar</span>
         <svg id="fh-chev" width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -693,6 +727,7 @@ html[data-theme="light"] .insight{background:#EBF3FC;}
 
   <!-- ============ TAB: MAPA Y VELOCÍMETROS ============ -->
   <section class="panel" id="panel-mapa" role="tabpanel">
+    <div id="mapa-howto"></div>
     <div class="sect-h"><span class="k">Indicadores de ejecución</span><span class="ln"></span></div>
     <div id="gauges-host"></div>
 
@@ -1542,7 +1577,7 @@ function renderCharts(){
     h+=`<div class="grid">
       <div class="card"><h3>Raciones servidas por mes <span class="src">Ejecución DPS 2026</span></h3><div class="csub">Cada columna es un mes con ejecución; la más oscura es el último mes.</div><div class="chartbox"><canvas id="c_mes_rac"></canvas></div>${insRac}</div>
       <div class="card"><h3>Monto ejecutado por mes <span class="src">Quetzales</span></h3><div class="csub">Misma escala de meses; un mes sin columna indica monto en Q0 en el archivo.</div><div class="chartbox"><canvas id="c_mes_fin"></canvas></div>${insFin}</div>
-      <div class="card full"><h3>Mapa de calor · raciones por departamento y mes <span class="src">Ejecución DPS 2026</span><span class="srcchip" data-srcgo="dps">ⓘ ${srcShort('dps')}</span></h3><div class="csub">Intensidad = raciones servidas. Pase el cursor sobre una celda para ver el valor exacto.</div>${renderHeat(p3)}</div>
+      <div class="card full"><h3>Mapa de calor · raciones por departamento y mes <span class="src">Ejecución DPS 2026</span>${editorMode?`<span class="srcchip" data-srcgo="dps">ⓘ ${srcShort('dps')}</span>`:`<span class="srcchip" style="cursor:default;background:transparent">Fuente: ${srcShort('dps')}</span>`}</h3><div class="csub">Intensidad = raciones servidas. Pase el cursor sobre una celda para ver el valor exacto.</div>${renderHeat(p3)}</div>
       <div class="card"><h3>Ejecución financiera por departamento <span class="src">Acumulado 2026</span></h3><div class="chartbox tall" style="height:520px"><canvas id="c_dep_fin"></canvas></div>${insDep}</div>
       <div class="card"><h3>Participación en raciones por departamento <span class="src">% del total</span></h3><div class="csub">Cada departamento como porcentaje de las raciones del año (top 10 y «Otros»).</div><div class="chartbox tall" style="height:470px"><canvas id="c_dep_sh"></canvas></div>${insSh}</div>
     </div>`;
@@ -1566,7 +1601,7 @@ function renderCharts(){
       <div class="card"><h3>Raciones servidas por tiempo <span class="src">Desayuno / Almuerzo</span></h3><div class="chartbox"><canvas id="c_da"></canvas></div></div>
     </div>`;
   }
-  host.innerHTML=h;
+  host.innerHTML=HOWTO.graf()+h;
   host.querySelectorAll('[data-srcgo]').forEach(a=>a.addEventListener('click',()=>goSource(a.dataset.srcgo)));
 
   const xTicks=f=>({ticks:{callback:f},grid:{color:gridc(),lineWidth:1,drawTicks:false},border:{display:false}});
@@ -1695,13 +1730,13 @@ function recolorCrowd(cur){ const cr=$('#clas-crowd'); if(!cr) return; const col
 function setDim(dim){ if(dim===clasDim) return; clasDim=dim;
   document.querySelectorAll('#clas-dimtoggle .dbtn').forEach(b=>b.classList.toggle('on',b.dataset.dim===dim));
   const cur=clasPeriod;
-  recolorCrowd(cur);
+  recolorCrowd(cur); renderClasTrend();
   const leg=$('#clas-legend'); leg.innerHTML=legendHTML(cur,dim); animateLegendBars(leg);
 }
 function setPeriod(rec){ clasPeriod=rec; renderClasificador(); }
 
 function renderClasificador(){
-  const host=$('#clasif-content'); const p=state.clasificador;
+  const host=$('#clasif-content'); const p=state.clasificador; destroyCharts();
   if(!p){ host.innerHTML=`<div class="card"><div class="empty">
       <svg width="42" height="42" viewBox="0 0 24 24" fill="none"><circle cx="8" cy="8" r="3" stroke="#3B82F6" stroke-width="1.5"/><circle cx="16" cy="9" r="2.4" stroke="#34D399" stroke-width="1.4"/><path d="M3 19c0-2.8 2.2-5 5-5s5 2.2 5 5M14 19c0-2.3 1.4-4.2 3-4.7" stroke="#3B82F6" stroke-width="1.5" stroke-linecap="round"/></svg>
       <div>Cargue el archivo <b>Clasificador Global</b> para ver la distribución de las raciones servidas por sexo, edad y pueblos.</div></div></div>`;
@@ -1739,18 +1774,22 @@ function renderClasificador(){
         <div class="proj-note">Estimación: personas ≈ raciones ÷ factor. Defínalo según la metodología del programa; se publica en <b>config.json</b> para que todos lo vean.</div>
       </div>`
     : (personas!=null ? `<div class="clas-personas">≈ <b>${fmtN(personas)}</b> personas atendidas <span>estimado · ${rpp} raciones por persona</span></div>` : '');
-  host.innerHTML=`
+  host.innerHTML=HOWTO.clasif()+`
     <div class="clas-hero">
       <div class="htx">
         <div class="hlabel">Raciones servidas · ${cur.label}</div>
         <div class="clas-num" id="clas-total">0</div>
-        <div class="hsub">Raciones servidas por el programa, clasificadas según el sexo, la edad y el pueblo de pertenencia de quien las recibió.</div>
+        <div class="hsub">Total de desayunos y almuerzos servidos en el período seleccionado.</div>
       </div>
       <div class="spacer"></div>
       <div class="period-chips" id="clas-periods">${chips}</div>
     </div>
     ${personasHTML}
 
+    <div class="sect-h"><span class="k">De un vistazo · ${cur.label}</span><span class="ln"></span></div>
+    <div class="q-grid">${qCard('sexo','¿A quién se sirvió? · Sexo',cur)}${qCard('edad','¿Qué edades? · Grupo de edad',cur)}${qCard('etnia','¿Qué pueblos? · Pertenencia',cur)}</div>
+    ${p.periodos.length>=2?`<div class="card" style="margin-bottom:14px"><h3 id="clas-trend-title">Cómo cambia la composición en cada período</h3><div class="csub">Cada columna suma 100% de las raciones de ese período. Cambie la dimensión con los botones de la siguiente tarjeta.</div><div class="chartbox" style="height:300px"><canvas id="clas-trend"></canvas></div></div>`:''}
+    <div class="sect-h"><span class="k">Visualización de la población</span><span class="ln"></span></div>
     <div class="clas-main">
       <div class="crowd-card">
         <div class="dim-toggle" id="clas-dimtoggle">
@@ -1758,7 +1797,7 @@ function renderClasificador(){
           <button class="dbtn ${clasDim==='edad'?'on':''}" data-dim="edad">Edad</button>
           <button class="dbtn ${clasDim==='etnia'?'on':''}" data-dim="etnia">Pueblo</button>
         </div>
-        <div class="crowd-hint">Cada figura representa ≈ <b style="color:#93C5FD">${fmtN(per)}</b> raciones; toda categoría con al menos una ración se muestra con una figura. Toque una dimensión para recolorear.</div>
+        <div class="crowd-hint">Cada figura representa ≈ <b style="color:#93C5FD">${fmtN(per)}</b> raciones. Toque <b>Sexo</b>, <b>Edad</b> o <b>Pueblo</b> para recolorear las figuras y la gráfica de arriba.</div>
         <div class="crowd" id="clas-crowd">${crowd}</div>
       </div>
       <div class="clas-legend" id="clas-legend">${legendHTML(cur,clasDim)}</div>
@@ -1768,21 +1807,13 @@ function renderClasificador(){
       <h3>Raciones por grupo etario</h3>
       <div class="csub">Cada figura ≈ ${fmtN(AGE_UNIT)} raciones. La longitud de cada fila es proporcional al grupo.</div>
       ${ageRows}
-    </div>
-
-    <div class="eth-card">
-      <h3>Pertenencia a pueblos</h3>
-      <div class="csub">Composición de las raciones servidas por pueblo de pertenencia.</div>
-      <div class="eth-bar" id="clas-ethbar">${ethBar}</div>
-      <div class="eth-legend">${ethLeg}</div>
-      <div class="eth-note">Raciones servidas a <b>pueblos indígenas y afrodescendiente</b>: <b>${fmtN(indig)}</b> — Maya ${fmtN(cur.etnia['Maya'])}, Garífuna ${fmtN(cur.etnia['Garífuna'])}, Xinca ${fmtN(cur.etnia['Xinca'])}.</div>
     </div>`;
 
   // wire + animate
   countUp($('#clas-total'), cur.raciones);
   paintCrowdIntro();
   animateLegendBars($('#clas-legend'));
-  requestAnimationFrame(()=>$('#clas-ethbar').querySelectorAll('.eth-seg').forEach(s=>{ s.style.width=s.dataset.w+'%'; }));
+  renderClasTrend();
   $('#clas-periods').querySelectorAll('.pchip').forEach(b=>b.addEventListener('click',()=>{ const r=periodos.find(x=>x.label===b.dataset.lbl); if(r) setPeriod(r); }));
   $('#clas-dimtoggle').querySelectorAll('.dbtn').forEach(b=>b.addEventListener('click',()=>setDim(b.dataset.dim)));
   if(editorMode){
@@ -1822,7 +1853,7 @@ function renderPagos(){
       <div class="prow"><span>Proyectadas</span><b>${fmtN(pr.proy)}</b></div>
     </div>`; }).join('');
 
-  host.innerHTML=`
+  host.innerHTML=HOWTO.pagos()+`
     <div class="sect-h"><span class="k">Resumen del semestre</span><span class="ln"></span></div>
     <div class="pagos-hero">
       <div class="gauge">${gauge}<div class="gtitle">Cumplimiento de pago</div><div class="gsub">raciones pagadas del total proyectado</div></div>
@@ -1838,12 +1869,12 @@ function renderPagos(){
     </div>
 
     <div class="sect-h"><span class="k">Evolución mensual · pagadas vs pendientes</span><span class="ln"></span></div>
-    <div class="card"><div class="csub">Raciones pagadas y pendientes de pago en cada mes del semestre.</div><div class="chartbox tall"><canvas id="pg_mes"></canvas></div></div>
+    <div class="card"><h3>¿Cuántas raciones se pagaron cada mes? <span class="src">Pagadas y pendientes</span></h3><div class="csub">Verde: ya pagadas. Naranja: pendientes de pago. La columna completa es lo proyectado del mes.</div><div class="chartbox tall"><canvas id="pg_mes"></canvas></div></div>
 
     <div class="sect-h"><span class="k">Por proveedor</span><span class="ln"></span></div>
     <div class="grid">
-      <div class="card"><h3>Raciones por proveedor <span class="src">Pagadas / pendientes</span></h3><div class="chartbox"><canvas id="pg_prov"></canvas></div></div>
-      <div class="card"><h3>Distribución de pendientes <span class="src">Por proveedor</span></h3><div class="chartbox"><canvas id="pg_pend"></canvas></div></div>
+      <div class="card"><h3>¿Cuánto se le debe a cada proveedor? <span class="src">Pagadas / pendientes</span></h3><div class="csub">Cada barra es un proveedor; la parte naranja es lo que falta pagar.</div><div class="chartbox"><canvas id="pg_prov"></canvas></div></div>
+      <div class="card"><h3>¿Quién concentra lo pendiente? <span class="src">Por proveedor</span></h3><div class="csub">Reparto de las raciones aún no pagadas entre los proveedores.</div><div class="chartbox"><canvas id="pg_pend"></canvas></div></div>
     </div>
     <div class="pcards">${pcards}</div>`;
 
@@ -1903,6 +1934,7 @@ function animateCounters(root){
 function afterRender(){ const p=$('#panel-'+activeTab); requestAnimationFrame(()=>{ revealPanel(p); animateCounters(p); positionTabIndicator(); }); }
 
 function switchTab(t){
+  if(t==='fuentes'&&!editorMode) t='resumen';
   activeTab=t;
   TABS.forEach(x=>{ $('#tab-'+x).classList.toggle('active',t===x); $('#panel-'+x).classList.toggle('show',t===x); });
   positionTabIndicator();
@@ -1914,7 +1946,7 @@ function renderActive(){
   else if(activeTab==='clasif') renderClasificador();
   else if(activeTab==='pagos') renderPagos();
   else if(activeTab==='fuentes') renderFuentes();
-  else { renderGauges(); renderMapa(); decorateCards(); }
+  else { const mh=$('#mapa-howto'); if(mh) mh.innerHTML=HOWTO.mapa()+SEMAFORO; renderGauges(); renderMapa(); decorateCards(); }
   afterRender();
 }
 function init(){
@@ -1928,7 +1960,7 @@ function init(){
     ft.classList.toggle('collapsed',c); $('#fh-txt').textContent=c?'Mostrar':'Ocultar'; ft.setAttribute('aria-expanded',String(!c)); });
   const fc=$('#feed-clear');
   if(fc) fc.addEventListener('click',()=>{ if(confirm('¿Borrar los archivos guardados en este dispositivo? Tendrá que volver a cargarlos.')){ clearStorage(); window.location.reload(); } });
-  const fp=$('#feed-publish'); if(fp) fp.addEventListener('click', publishBundle);
+  const fp=$('#feed-publish'); if(fp) fp.addEventListener('click', openPublishDialog);
   TABS.forEach(x=>$('#tab-'+x).addEventListener('click',()=>switchTab(x)));
   // Un solo listener: el borde con degradado sigue el cursor sobre cualquier tarjeta
   document.addEventListener('pointermove',e=>{ const el=e.target.closest&&e.target.closest('.card,.gauge,.pcard'); if(!el) return;
@@ -1937,14 +1969,17 @@ function init(){
   if(document.fonts&&document.fonts.ready) document.fonts.ready.then(positionTabIndicator);
   setTimeout(positionTabIndicator,300);
   // Modo edición reservado: URL con ?editor=1 (o abrir el archivo localmente).
-  try{ editorMode=new URLSearchParams(window.location.search).get('editor')==='1'; }catch(e){ editorMode=false; }
+  // Modo administrador: solo se activa entrando por /admin/ (ruta que se protege con Cloudflare Access); ya no por ?editor=1
+  try{ if(new URLSearchParams(location.search).get('editor')==='1'){ location.replace(new URL('admin/',location.href.split('?')[0]).href); return; } }catch(e){}
+  try{ editorMode=sessionStorage.getItem('mides_admin')==='1'; }catch(e){ editorMode=false; }
+  if(!editorMode){ ['tab-fuentes','panel-fuentes'].forEach(id=>{ const el=document.getElementById(id); if(el) el.style.display='none'; }); }
   wireExtras();
   renderActive();   // primer render mientras se comprueban los datos publicados
   (async()=>{
     await Promise.all([loadProjConfig(),loadFuentesCfg()]);                    // meta oficial publicada (config.json), si existe
     if(editorMode) loadProjOverrideFromLS();   // en edición, su borrador local tiene prioridad
     const n = await loadPublishedBundle();     // datos publicados (/data/ o datos.json)
-    if(n>0){ if(!editorMode) enterViewerMode(); }   // con datos publicados y sin editor → solo lectura
+    if(n>0){ if(!editorMode) enterViewerMode(); else restoreFromStorage(); }   // sin editor → solo lectura; con editor, sus archivos cargados (borradores) tienen prioridad
     else { restoreFromStorage(); }             // sin publicar → borradores locales
     updateFeedStatus(); updateClearBtn(); updatePublishBtn(); renderActive();
   })();
@@ -2102,7 +2137,7 @@ function renderFuentes(focus){
   host.querySelectorAll('[data-goto]').forEach(a=>a.addEventListener('click',e=>{ e.preventDefault(); const el=$('#fx-'+a.dataset.goto); if(el){ el.scrollIntoView({behavior:'smooth',block:'center'}); el.classList.add('hl'); setTimeout(()=>el.classList.remove('hl'),1800);} }));
   if(focus){ const el=$('#fx-'+focus); if(el) setTimeout(()=>el.scrollIntoView({behavior:'smooth',block:'center'}),120); }
 }
-function goSource(slot){ switchTab('fuentes'); renderFuentes(slot); }
+function goSource(slot){ if(!editorMode) return; switchTab('fuentes'); renderFuentes(slot); }
 
 /* Chips de fuente y botón CSV en cada tarjeta; datos de cada gráfica descargables (cifras agregadas) */
 const CANVAS_SRC={c_sem_rac:'semana',c_sem_fin:'semana',c_mes_rac:'dps',c_mes_fin:'dps',c_dep_fin:'dps',c_dep_sh:'dps',c_top:'semana',c_mod:'semana',c_contr:'semana',c_da:'semana'};
@@ -2113,10 +2148,10 @@ function chartCSV(canvas){ const ch=window.Chart&&Chart.getChart(canvas); if(!ch
   downloadBuf(nm+'.csv','﻿'+rows.map(r=>r.map(q).join(',')).join('\n'),'text/csv;charset=utf-8'); }
 function decorateCards(){
   document.querySelectorAll('canvas[id^="c_"]').forEach(cv=>{ const h3=cv.closest('.card')&&cv.closest('.card').querySelector('h3'); if(!h3||h3.dataset.dec) return; h3.dataset.dec='1';
-    const sl=CANVAS_SRC[cv.id]; if(sl){ const a=document.createElement('span'); a.className='srcchip'; a.title='Ver archivo, hoja y cálculo'; a.textContent='ⓘ '+srcShort(sl); a.addEventListener('click',()=>goSource(sl)); h3.appendChild(a); }
+    const sl=CANVAS_SRC[cv.id]; if(sl){ const a=document.createElement('span'); a.className='srcchip'; a.textContent=(editorMode?'ⓘ ':'Fuente: ')+srcShort(sl); if(editorMode){ a.title='Ver archivo, hoja y cálculo'; a.addEventListener('click',()=>goSource(sl)); } else { a.style.cursor='default'; a.style.background='transparent'; } h3.appendChild(a); }
     const b=document.createElement('button'); b.className='csvbtn'; b.textContent='⤓ CSV'; b.title='Descargar los datos de esta gráfica'; b.addEventListener('click',()=>chartCSV(cv)); h3.appendChild(b); });
   document.querySelectorAll('.mini-h .src').forEach(el=>{ if(el.dataset.dec) return; el.dataset.dec='1'; const t=norm(el.textContent);
-    const sl=t.includes('CUOTA')?'semana':t.includes('DPS')?'dps':null; if(sl){ el.style.cursor='pointer'; el.title='Ver archivo, hoja y cálculo'; el.textContent='ⓘ '+el.textContent; el.addEventListener('click',()=>goSource(sl)); } });
+    const sl=t.includes('CUOTA')?'semana':t.includes('DPS')?'dps':null; if(sl&&editorMode){ el.style.cursor='pointer'; el.title='Ver archivo, hoja y cálculo'; el.textContent='ⓘ '+el.textContent; el.addEventListener('click',()=>goSource(sl)); } });
 }
 
 /* ============================================================
@@ -2155,7 +2190,7 @@ function wireExtras(){
   const bp=$('#btn-present'); if(bp) bp.addEventListener('click',()=>{ const on=document.body.classList.toggle('present'); bp.textContent=on?'■ Salir de presentación':'▶ Presentar'; setTimeout(positionTabIndicator,60); });
   document.addEventListener('keydown',e=>{ if(e.key==='Escape'&&document.body.classList.contains('present')) $('#btn-present').click(); });
   const pr=$('#btn-print'); if(pr) pr.addEventListener('click',()=>window.print());
-  if(editorMode){ const ab=$('#admin-badge'); if(ab) ab.style.display='inline-flex'; }
+  if(editorMode){ const ab=$('#admin-badge'); if(ab){ ab.style.display='inline-flex'; ab.style.cursor='pointer'; ab.title='Clic para salir del modo administrador'; ab.addEventListener('click',()=>{ try{ sessionStorage.removeItem('mides_admin'); }catch(e){} location.reload(); }); } }
 }
 
 /* ============================================================
@@ -2191,9 +2226,9 @@ function renderResumen(){
     add('info',`Perfil de la población atendida: <b>${(sx.Femenino/tot*100).toFixed(1)}%</b> mujeres; niñez <b>${(ed['Niñez']/tg*100).toFixed(1)}%</b> y personas mayores <b>${(ed['Tercera Edad']/tg*100).toFixed(1)}%</b>; pueblo maya <b>${(et.Maya/te*100).toFixed(1)}%</b>.`,`${srcShort('clasif')} · hoja ${cl.sheet}`); }
   if(pg&&pg.totalProy>0){ const pc=pg.totalNopag/pg.totalProy*100;
     add(pc>10?'warn':'ok',`Pagos a proveedores: <b>${fmtN(pg.totalNopag)}</b> raciones pendientes de pago (<b>${pc.toFixed(1)}%</b> de ${fmtN(pg.totalProy)} proyectadas); pagadas ${fmtN(pg.totalPag)}.`,`${srcShort('pagos')} · hoja ${pg.sheet}`); }
-  const chk=buildChecks().filter(k=>k.lvl==='warn');
-  if(chk.length) add('warn',`<b>${chk.length}</b> punto(s) por conciliar entre archivos antes de citar cifras: ${chk.slice(0,3).map(k=>k.t).join('; ')}${chk.length>3?'…':''}. <a href="#" data-goto-fx style="color:#93C5FD">Ver conciliación</a>`,'Pestaña Fuentes y trazabilidad');
-  else add('ok','Los archivos cargados concilian entre sí dentro de los umbrales definidos.','Pestaña Fuentes y trazabilidad');
+  const chk=editorMode?buildChecks().filter(k=>k.lvl==='warn'):[];
+  if(editorMode&&chk.length) add('warn',`<b>${chk.length}</b> punto(s) por conciliar entre archivos antes de citar cifras: ${chk.slice(0,3).map(k=>k.t).join('; ')}${chk.length>3?'…':''}. <a href="#" data-goto-fx style="color:#93C5FD">Ver conciliación</a>`,'Pestaña Fuentes y trazabilidad');
+  else if(editorMode) add('ok','Los archivos cargados concilian entre sí dentro de los umbrales definidos.','Pestaña Fuentes y trazabilidad');
 
   // Tabla ejecutiva por departamento
   let tabla='';
@@ -2204,13 +2239,13 @@ function renderResumen(){
       ${rows.map((r,i)=>{ const v=r[1]; return `<tr><td>${i+1}</td><td><b>${r[0]}</b></td><td class="n">${(ca[r[0]]||{}).total||'—'}</td>
         <td><span class="db" style="width:${Math.max(3,v.rac/mx*120)}px"></span>${fmtN(v.rac)}</td><td class="n">${(v.rac/d.totRac*100).toFixed(1)}%</td><td class="n">${fmtQ(v.fin)}</td><td class="n">${v.rac&&v.fin?'Q '+(v.fin/v.rac).toFixed(2):'—'}</td></tr>`; }).join('')}
       <tr><td></td><td><b>TOTAL</b></td><td class="n"><b>${q?q.comedores.length:'—'}</b></td><td><b>${fmtN(d.totRac)}</b></td><td class="n">100%</td><td class="n"><b>${fmtQ(d.totFin)}</b></td><td class="n"></td></tr>
-      </tbody></table></div><div class="fx-note" style="margin-top:8px"><span class="srcchip" data-srcgo="dps" style="margin:0">ⓘ ${srcShort('dps')}</span> &nbsp;Comedores activos: ${srcShort('semana')}. Clic en las gráficas del siguiente apartado para el detalle.</div></div>`; }
+      </tbody></table></div><div class="fx-note" style="margin-top:8px"><span class="srcchip" ${editorMode?'data-srcgo="dps"':'style="cursor:default;background:transparent"'} style="margin:0">${editorMode?'ⓘ ':'Fuente: '}${srcShort('dps')}</span> &nbsp;Comedores activos: ${srcShort('semana')}. Clic en las gráficas del siguiente apartado para el detalle.</div></div>`; }
 
   const cut=[ mes?`Cuota: ${mes.texto.replace(/^COMEDORES SOCIALES\s*/i,'').toLowerCase()}`:null, d?(()=>{const l=d.fisMes.reduce((a,v,i)=>v>0?i:a,-1);return l>=0?`DPS: hasta ${MESES_FULL[l].toLowerCase()} 2026`:null;})():null ].filter(Boolean).join(' · ');
-  host.innerHTML=`<div class="ex-head"><h2>Resumen ejecutivo · Comedores Sociales 2026</h2><span class="cut">Corte de datos — ${cut||'según archivos cargados'} · Generado el ${new Date().toLocaleDateString('es-GT',{dateStyle:'long'})}</span></div>
+  host.innerHTML=HOWTO.resumen()+`<div class="ex-head"><h2>Resumen ejecutivo · Comedores Sociales 2026</h2><span class="cut">Corte de datos — ${cut||'según archivos cargados'} · Generado el ${new Date().toLocaleDateString('es-GT',{dateStyle:'long'})}</span></div>
     ${biBanner()}
     <div class="ex-grid"><div class="card"><h3>Hallazgos clave <span class="src">Generados con los datos cargados</span></h3><div class="ex-find" style="margin-top:12px">${F.join('')}</div></div>${pace||'<div></div>'}</div>
-    ${tabla}`;
+    ${tabla}${GLOSARIO}`;
   host.querySelectorAll('[data-goto-fx]').forEach(a=>a.addEventListener('click',e=>{e.preventDefault();switchTab('fuentes');}));
   host.querySelectorAll('[data-srcgo]').forEach(a=>a.addEventListener('click',()=>goSource(a.dataset.srcgo)));
 }
@@ -2229,6 +2264,116 @@ function setTheme(t){
   if(t==='light') document.documentElement.setAttribute('data-theme','light'); else document.documentElement.removeAttribute('data-theme');
   lsSet('mides_theme',t); const b=$('#btn-theme'); if(b) b.textContent=t==='light'?'☾ Tema oscuro':'☀ Tema claro';
   applyChartTheme(); renderActive();
+}
+
+function howto(icon,titulo,texto,tips){ return `<div class="howto"><span class="hi">${icon}</span><div><b>${titulo}</b> ${texto}${tips&&tips.length?`<div class="tips">${tips.map(t=>`<span>${t}</span>`).join('')}</div>`:''}</div></div>`; }
+const HOWTO={
+  resumen:()=>howto('?','¿Qué muestra esta página?','Cómo va el programa de Comedores Sociales en 2026: cuántas raciones se han servido, cuánto dinero se ha ejecutado y qué tan cerca está de la meta del año. Una <b>ración</b> es un desayuno o un almuerzo servido.',['Los recuadros de arriba son las cifras clave','La barra compara el avance real contra el ritmo esperado','Cada hallazgo indica de qué archivo sale']),
+  graf:()=>howto('?','¿Cómo leer estas gráficas?','Muestran la evolución mes a mes, la comparación entre departamentos y el detalle semanal. En las columnas, <b>la más oscura es el período más reciente</b>.',['Pase el cursor sobre una gráfica para ver el dato exacto','Clic en un departamento del ranking para verlo en el mapa','Cada gráfica trae una frase con lo más importante','Botón ⤓ CSV para descargar los datos']),
+  clasif:()=>howto('?','¿Qué muestra esta página?','Cada ración servida se registra según <b>quién la recibió</b>. Aquí se ve qué parte corresponde a mujeres y hombres, a cada grupo de edad y a cada pueblo.',['Cambie el período con los botones de arriba','Las tres tarjetas responden de un vistazo; abajo ve cómo cambia en el tiempo']),
+  pagos:()=>howto('?','¿Qué muestra esta página?','Cuántas raciones ya se <b>pagaron</b> a cada proveedor y cuántas siguen <b>pendientes de pago</b>, mes a mes.',['Verde = pagadas · naranja = pendientes','El velocímetro indica qué porcentaje del semestre ya está pagado']),
+  mapa:()=>howto('?','¿Cómo leer esta página?','Los velocímetros indican qué porcentaje de lo previsto se ha cumplido. En el mapa, <b>cuanto más oscuro el departamento, más raciones se han servido</b>.',['Clic en un departamento para ver sus comedores','Pase el cursor sobre un departamento para ver sus cifras'])
+};
+const SEMAFORO=`<div class="semaforo"><span><i style="background:var(--z-bad)"></i>Menos de 50%: atención</span><span><i style="background:var(--z-warn)"></i>50% a 80%: en proceso</span><span><i style="background:var(--z-ok)"></i>Más de 80%: buen avance</span><span>En «costo por ración» el verde es el costo más bajo.</span></div>`;
+const GLOSARIO=`<details class="gloss"><summary>Glosario: palabras que se usan en este tablero</summary><dl>
+  <dt>Ración</dt><dd>Un desayuno o un almuerzo servido a una persona.</dd>
+  <dt>Ejecución física</dt><dd>Cuántas raciones se han servido (frente a las previstas).</dd>
+  <dt>Ejecución financiera</dt><dd>Cuántos quetzales se han ejecutado (frente a lo previsto).</dd>
+  <dt>Proyectado / meta</dt><dd>Lo que se espera alcanzar en el mes o en el año.</dd>
+  <dt>Comedor fijo / móvil</dt><dd>Fijo: funciona en un local. Móvil: se traslada a distintas comunidades.</dd>
+  <dt>Costo por ración</dt><dd>Quetzales ejecutados dividido entre raciones servidas.</dd></dl></details>`;
+
+/* ---- Clasificador: tarjetas de respuesta + tendencia por período ---- */
+const FRIEND={sexo:{'Femenino':'Mujeres','Masculino':'Hombres'},
+  edad:{'Niñez':'Niñez (0 a 12 años)','Juventud':'Juventud (13 a 30)','Adultos':'Adultez (30 a 60)','Tercera Edad':'Personas mayores (más de 60)'},
+  etnia:{'Maya':'Maya','Xinca':'Xinca','Garífuna':'Garífuna','Mestizo':'Mestizo','Otro':'Otro'}};
+const fr=(dim,n)=>(FRIEND[dim]&&FRIEND[dim][n])||n;
+const pctTxt=v=>v.toLocaleString('es-GT',{minimumFractionDigits:v<10&&v>0?1:0,maximumFractionDigits:1})+'%';
+function qCard(dim,titulo,cur){
+  const es=dimEntries(cur,dim), tot=es.reduce((a,e)=>a+e.value,0)||1, top=es.slice().sort((a,b)=>b.value-a.value)[0];
+  let big,sent;
+  if(dim==='sexo'){ big=pctTxt(top.value/tot*100); sent=`de las raciones fue para <b>${top.name==='Femenino'?'mujeres':'hombres'}</b>.`; }
+  else if(dim==='edad'){ big=pctTxt(top.value/tot*100); sent=`es el grupo más atendido: <b>${fr('edad',top.name)}</b>.`; }
+  else { const ind=(cur.etnia['Maya']||0)+(cur.etnia['Xinca']||0)+(cur.etnia['Garífuna']||0); big=pctTxt(ind/tot*100); sent=`de las raciones fue para <b>pueblos indígenas y afrodescendiente</b> (${fmtN(ind)} raciones).`; }
+  const bar=es.map(e=>`<i style="width:${(e.value/tot*100).toFixed(2)}%;background:${e.color}" title="${fr(dim,e.name)}: ${pctTxt(e.value/tot*100)}"></i>`).join('');
+  const rows=es.slice().sort((a,b)=>b.value-a.value).map(e=>`<div class="q-row"><span class="d" style="background:${e.color}"></span><span class="n">${fr(dim,e.name)}</span><b>${pctTxt(e.value/tot*100)}</b><span class="r">${fmtN(e.value)}</span></div>`).join('');
+  return `<div class="q-card"><div class="qt">${titulo}</div><div class="qbig">${big}</div><div class="qsent">${sent}</div><div class="q-bar">${bar}</div>${rows}</div>`;
+}
+function renderClasTrend(){
+  const p=state.clasificador, cv=$('#clas-trend'); if(!p||!cv||!window.Chart) return;
+  if(charts.clas_trend){ try{charts.clas_trend.destroy();}catch(e){} }
+  const pers=p.periodos, cats=Object.keys(CLAS_COLORS[clasDim]);
+  const t=$('#clas-trend-title'); if(t) t.textContent=`Cómo cambia la composición por ${DIM_LABEL[clasDim]} en cada período`;
+  charts.clas_trend=new Chart(cv,{type:'bar',data:{labels:pers.map(x=>x.label),datasets:cats.map(c=>({label:fr(clasDim,c),backgroundColor:CLAS_COLORS[clasDim][c],maxBarThickness:60,
+    data:pers.map(x=>x.raciones?(x[clasDim][c]||0)/x.raciones*100:0),borderRadius:0,borderSkipped:false}))},plugins:DL,
+    options:{maintainAspectRatio:false,interaction:{mode:'index',intersect:false},plugins:{legend:{position:'bottom',labels:{generateLabels:ch=>ch.data.datasets.map((d,i)=>({text:d.label,fillStyle:d.backgroundColor,strokeStyle:d.backgroundColor,lineWidth:0,pointStyle:'circle',fontColor:txtc(),hidden:!ch.isDatasetVisible(i),datasetIndex:i}))}},
+      datalabels:{display:c=>c.dataset.data[c.dataIndex]>=7,color:'#fff',font:{size:10.5,weight:700},formatter:v=>v.toFixed(0)+'%'},
+      tooltip:tt({label:c=>` ${c.dataset.label}: ${c.raw.toFixed(1)}% (${fmtN((pers[c.dataIndex][clasDim][cats[c.datasetIndex]]||0))} raciones)`})},
+      scales:{x:{stacked:true,grid:{display:false},border:{color:gridc()}},y:{stacked:true,max:100,ticks:{callback:v=>v+'%'},grid:{color:gridc()},border:{display:false}}}}});
+}
+
+/* ============================================================
+   PUBLICAR DATOS → commit en GitHub (data/*.xlsx + datos.json) → Cloudflare Pages despliega solo
+   El token se escribe en el navegador del administrador; no se guarda en el repositorio ni en servidores.
+   ============================================================ */
+const REPO={owner:'jedlrg19-blip',repo:'estadistica-comedores-sociales',branch:'main'};
+const CANON_FILE={semana:'data/cuota.xlsx',dps:'data/dps.xlsx',clasif:'data/clasificador.xlsx',pagos:'data/semestral.xlsx'};
+async function ghApi(token,path,opts){
+  const r=await fetch('https://api.github.com'+path,Object.assign({headers:{'Authorization':'Bearer '+token,'Accept':'application/vnd.github+json','Content-Type':'application/json','X-GitHub-Api-Version':'2022-11-28'}},opts||{}));
+  const t=await r.text(); let j=null; try{ j=JSON.parse(t); }catch(e){}
+  if(!r.ok){ const e=new Error((j&&j.message)||t||('HTTP '+r.status)); e.status=r.status; throw e; }
+  return j;
+}
+function buildDatosJson(){ const st={}; SLOTS.forEach(sl=>{ const m=metaOf(sl); if(m&&m.buf) st[sl]={name:m.name,b64:bufToB64(m.buf)}; }); return JSON.stringify(st); }
+async function publishToGitHub(token,slots,msg,onStep){
+  const R=`/repos/${REPO.owner}/${REPO.repo}`;
+  onStep('Leyendo la rama '+REPO.branch+'…');
+  const ref=await ghApi(token,`${R}/git/ref/heads/${REPO.branch}`); const head=ref.object.sha;
+  const commit=await ghApi(token,`${R}/git/commits/${head}`);
+  const files=slots.map(sl=>({path:CANON_FILE[sl],b64:bufToB64(metaOf(sl).buf),enc:'base64'}));
+  files.push({path:'datos.json',b64:buildDatosJson(),enc:'utf-8'});
+  const tree=[];
+  for(let i=0;i<files.length;i++){ onStep(`Subiendo ${files[i].path} (${i+1}/${files.length})…`);
+    const b=await ghApi(token,`${R}/git/blobs`,{method:'POST',body:JSON.stringify({content:files[i].b64,encoding:files[i].enc})});
+    tree.push({path:files[i].path,mode:'100644',type:'blob',sha:b.sha}); }
+  onStep('Creando el commit…');
+  const t=await ghApi(token,`${R}/git/trees`,{method:'POST',body:JSON.stringify({base_tree:commit.tree.sha,tree})});
+  const c=await ghApi(token,`${R}/git/commits`,{method:'POST',body:JSON.stringify({message:msg,tree:t.sha,parents:[head]})});
+  await ghApi(token,`${R}/git/refs/heads/${REPO.branch}`,{method:'PATCH',body:JSON.stringify({sha:c.sha})});
+  return `https://github.com/${REPO.owner}/${REPO.repo}/commit/${c.sha}`;
+}
+function openPublishDialog(){
+  const local=SLOTS.filter(sl=>{ const m=metaOf(sl); return m&&m.origin==='local'&&m.buf; });
+  if(!local.length){ alert('No hay archivos nuevos cargados en este navegador.\nCargue los Excel actualizados en «Fuentes de datos» y vuelva a presionar Publicar datos.'); return; }
+  const saved=(()=>{ try{ return sessionStorage.getItem('mides_gh')||''; }catch(e){ return ''; } })();
+  const ov=document.createElement('div'); ov.className='pub-ov';
+  const esc=t=>String(t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  ov.innerHTML=`<div class="pub-box" role="dialog" aria-modal="true" aria-label="Publicar datos">
+    <h3>Publicar datos en vivo</h3>
+    <p>Se hará <b>un solo commit</b> en <code>${REPO.owner}/${REPO.repo}</code> (rama <code>${REPO.branch}</code>) y Cloudflare Pages publicará el sitio en 1 a 2 minutos.</p>
+    <ul>${local.map(sl=>`<li><span>${esc(SRC_DEF[sl].label)}<br><span style="color:var(--muted)">${esc(metaOf(sl).name)}</span></span><span style="text-align:right"><code>${CANON_FILE[sl]}</code><br><span style="color:var(--muted)">${(metaOf(sl).size/1024).toFixed(0)} KB</span></span></li>`).join('')}
+      <li><span>Paquete de respaldo con todas las fuentes</span><code>datos.json</code></li></ul>
+    <label for="pub-msg">Mensaje del cambio</label><input id="pub-msg" type="text" value="Actualización de datos ${new Date().toLocaleDateString('es-GT')}">
+    <label for="pub-tok">Token de GitHub (permiso de escritura)</label><input id="pub-tok" type="password" autocomplete="off" placeholder="github_pat_…" value="${esc(saved)}">
+    <label style="text-transform:none;letter-spacing:0;font-weight:500;display:flex;gap:8px;align-items:center"><input id="pub-rem" type="checkbox" ${saved?'checked':''}> Recordar en esta pestaña (se borra al cerrarla)</label>
+    <details><summary>¿Cómo obtengo el token?</summary><p>GitHub → Settings → Developer settings → Fine-grained tokens → Generate new token. Repositorio: solo <b>${REPO.repo}</b>. Permiso: <b>Contents → Read and write</b>. Caducidad corta (por ejemplo 7 días). No lo comparta ni lo escriba en ningún chat.</p></details>
+    <div class="st" id="pub-st"></div>
+    <div class="row"><button class="fx-btn pri" id="pub-go">Publicar ahora</button><button class="fx-btn" id="pub-dl">Solo descargar datos.json</button><button class="fx-btn" id="pub-x">Cancelar</button></div></div>`;
+  document.body.appendChild(ov);
+  const $$=id=>ov.querySelector(id), st=$$('#pub-st'), close=()=>ov.remove();
+  $$('#pub-x').addEventListener('click',close); ov.addEventListener('click',e=>{ if(e.target===ov) close(); });
+  $$('#pub-dl').addEventListener('click',()=>downloadText('datos.json',buildDatosJson()));
+  $$('#pub-go').addEventListener('click',async()=>{
+    const tok=$$('#pub-tok').value.trim(); if(!tok){ st.className='st err'; st.textContent='Escriba el token de GitHub.'; return; }
+    const btn=$$('#pub-go'); btn.disabled=true; st.className='st'; st.textContent='Iniciando…';
+    try{ const url=await publishToGitHub(tok,local,$$('#pub-msg').value.trim()||'Actualización de datos',m=>{ st.textContent=m; });
+      try{ if($$('#pub-rem').checked) sessionStorage.setItem('mides_gh',tok); else sessionStorage.removeItem('mides_gh'); }catch(e){}
+      clearStorage(); updateClearBtn(); updatePublishBtn();
+      st.className='st ok'; st.innerHTML=`✔ Publicado. <a href="${url}" target="_blank" rel="noopener" style="color:inherit;text-decoration:underline">Ver el commit</a>. Cloudflare tardará 1 a 2 minutos; luego recargue el sitio (Ctrl+Shift+R).`;
+      btn.style.display='none'; $$('#pub-x').textContent='Cerrar';
+    }catch(e){ btn.disabled=false; st.className='st err';
+      st.textContent= e.status===401?'GitHub rechazó el token (401). Verifique que sea correcto y no haya caducado.': e.status===403||e.status===404?`GitHub negó el acceso (${e.status}). El token debe tener permiso «Contents: Read and write» sobre ${REPO.repo}.`: e.status===422?'GitHub rechazó el cambio (422): intente de nuevo; si persiste, otra persona modificó la rama en ese momento.':'No se pudo publicar: '+e.message; }
+  });
 }
 
 window.mSeleccionarDep=mSeleccionarDep; window.mZoomComedor=mZoomComedor;
