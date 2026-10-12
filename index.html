@@ -993,7 +993,7 @@ function parseDPS(wb){
   const cDep=hdr.indexOf('DEPARTAMENTO'), cMun=hdr.findIndex(x=>x.includes('MUNICIPIO')), cUM=hdr.findIndex(x=>x.includes('UNIDAD'));
   let cIdx=-1; for(let j=(cUM<0?4:cUM+1);j<sub.length;j++){ if(sub[j].includes('FISICA')){cIdx=j;break;} }
   if(cIdx<0) cIdx=4;
-  const depAgg={},munAgg={},depMes={}; const fisMes=Array(12).fill(0),finMes=Array(12).fill(0);
+  const depAgg={},munAgg={},depMes={}; const fisMes=Array(12).fill(0),finMes=Array(12).fill(0),desMes=Array(12).fill(0),almMes=Array(12).fill(0);
   let cur=null,nCom=0;
   for(let i=h+2;i<R.length;i++){ const r=R[i];
     if(r[cDep]&&String(r[cDep]).trim()) cur=canonDep(r[cDep]);
@@ -1005,10 +1005,11 @@ function parseDPS(wb){
     const key=cur+'|'+String(mun).trim().toUpperCase();
     (munAgg[key]=munAgg[key]||{dep:cur,mun:String(mun).trim(),rac:0,fin:0}); munAgg[key].rac+=fis; munAgg[key].fin+=fin;
     const dm=(depMes[cur]=depMes[cur]||Array(12).fill(0));
-    for(let k=0;k<12;k++){ const a=num(r[cIdx+k*2]); fisMes[k]+=a; dm[k]+=a; finMes[k]+=num(r[cIdx+1+k*2]); }
+    const isDes=norm(umv).startsWith('DESAYUNO'), isAlm=norm(umv).startsWith('ALMUERZO');
+    for(let k=0;k<12;k++){ const a=num(r[cIdx+k*2]); fisMes[k]+=a; dm[k]+=a; if(isDes) desMes[k]+=a; else if(isAlm) almMes[k]+=a; finMes[k]+=num(r[cIdx+1+k*2]); }
     if(norm(umv).startsWith('DESAYUNO')) nCom++;
   }
-  return {depAgg,depMes,munAgg:Object.values(munAgg),fisMes,finMes,
+  return {depAgg,depMes,munAgg:Object.values(munAgg),fisMes,finMes,desMes,almMes,
           totRac:Object.values(depAgg).reduce((a,v)=>a+v.rac,0),
           totFin:Object.values(depAgg).reduce((a,v)=>a+v.fin,0),nCom,sheet:sn,integrado:parseIntegrado(wb)};
 }
@@ -1032,7 +1033,58 @@ function parseIntegrado(wb){
 const state={ semana:null, quincena:null, dps:null, clasificador:null, pagos:null };
 
 /* ---------- PARSER 4: Clasificador Global → raciones por sexo/edad/etnia ---------- */
+/* Clasificador temático por comedor (formato 2026-09): la hoja trae uno o varios BLOQUES (DESAYUNOS, ALMUERZOS), cada uno con una fila
+   por comedor «DEPARTAMENTO, MUNICIPIO», columnas HOMBRES/MUJERES, 4 grupos de edad y etnias, y su fila TOTALES.
+   El período viene en el título («PERIODO SEPTIEMBRE 2026»). Se suman los bloques y se conserva el detalle por tipo de ración. */
+function parseClasificadorComedor(wb){
+  const mk=()=>({raciones:0,sexo:{'Femenino':0,'Masculino':0},edad:{'Niñez':0,'Juventud':0,'Adultos':0,'Tercera Edad':0},etnia:{'Maya':0,'Xinca':0,'Garífuna':0,'Mestizo':0,'Otro':0}});
+  const add=(t,o)=>{ t.raciones+=o.raciones; for(const k in o.sexo)t.sexo[k]+=o.sexo[k]; for(const k in o.edad)t.edad[k]+=o.edad[k]; for(const k in o.etnia)t.etnia[k]+=o.etnia[k]; };
+  for(const nm of wb.SheetNames){ const R=rowsOf(wb,nm); const hs=[];
+    for(let i=0;i<R.length;i++){ const nn=(R[i]||[]).map(norm); if(nn.some(x=>x==='HOMBRES')&&nn.some(x=>x==='MUJERES')) hs.push(i); }
+    if(!hs.length) continue;
+    const bloques=[], avisos=[];
+    for(const h of hs){
+      const sub=R[h].map(norm), top=(R[h-1]||[]).map(norm);
+      const cFem=sub.findIndex(x=>x==='MUJERES'), cMasc=sub.findIndex(x=>x==='HOMBRES');
+      const cRac=top.findIndex(x=>x.includes('DESAYUNO')||x.includes('ALMUERZO')||x.includes('CENA')||x.includes('REFACCION')||x.includes('RACION'));
+      const cLab=(()=>{ const j=top.findIndex(x=>x.includes('COMEDOR')); return j>=0?j:1; })();
+      const f=(...ks)=>sub.findIndex(x=>ks.some(k=>x.includes(k)));
+      const C={ninez:f('NINEZ','MENORES DE 13'),juv:f('JUVENTUD'),adu:f('ADULTO'),ter:f('TERCERA','MAYORES DE 60'),maya:f('MAYA'),xinca:f('XINCA'),gari:f('GARIFUNA'),mest:f('MESTIZO'),otro:sub.findIndex(x=>x==='OTRO')};
+      if(cFem<0||cMasc<0||cRac<0||C.ninez<0||C.maya<0) continue;
+      const put=(t,r)=>{ t.raciones+=num(r[cRac]); t.sexo.Femenino+=num(r[cFem]); t.sexo.Masculino+=num(r[cMasc]); t.edad['Niñez']+=num(r[C.ninez]); t.edad.Juventud+=num(r[C.juv]); t.edad.Adultos+=num(r[C.adu]); t.edad['Tercera Edad']+=num(r[C.ter]); t.etnia.Maya+=num(r[C.maya]); t.etnia.Xinca+=num(r[C.xinca]); t.etnia['Garífuna']+=num(r[C.gari]); t.etnia.Mestizo+=num(r[C.mest]); if(C.otro>=0) t.etnia.Otro+=num(r[C.otro]); };
+      const sum=mk(), decl=mk(); let n=0, hasTot=false; const filas=[];
+      const nxt=hs.find(x=>x>h)||R.length;
+      for(let i=h+1;i<nxt;i++){ const r=R[i]; const lab=r[cLab]; if(lab==null||!String(lab).trim()) continue;
+        if(/^TOTAL/.test(norm(lab))&&!String(lab).includes(',')){ put(decl,r); hasTot=true; break; }
+        if(!num(r[cRac])&&!num(r[cFem])&&!num(r[cMasc])) continue;
+        put(sum,r); n++; const parts=String(lab).split(','); filas.push({dep:canonDep(parts[0]),mun:parts.slice(1).join(',').trim(),raciones:num(r[cRac])}); }
+      if(!n) continue;
+      // período del bloque: «PERIODO …» en las filas de título que lo preceden
+      let ptxt=''; for(let i=h-1;i>=Math.max(0,h-8)&&!ptxt;i--){ for(const x of (R[i]||[])){ if(typeof x==='string'&&/PERIODO/i.test(x)){ ptxt=x.replace(/^.*PERIODO\s*:?\s*/i,'').trim(); break; } } }
+      const comida=String(top[cRac]||'RACIONES').toLowerCase();
+      const nombre=comida.charAt(0).toUpperCase()+comida.slice(1);
+      const lbl=String(nombre);
+      const dims=[['sexo',x=>x.sexo.Femenino+x.sexo.Masculino],['edad',x=>Object.values(x.edad).reduce((a,b)=>a+b,0)],['etnia',x=>Object.values(x.etnia).reduce((a,b)=>a+b,0)]];
+      dims.forEach(([k,fn])=>{ if(Math.abs(fn(sum)-sum.raciones)>0.5) avisos.push(`${lbl}: la suma por ${k} (${fmtN(fn(sum))}) no coincide con el total de raciones (${fmtN(sum.raciones)}).`); });
+      if(hasTot&&Math.abs(decl.raciones-sum.raciones)>0.5) avisos.push(`${lbl}: la fila TOTALES del archivo (${fmtN(decl.raciones)}) no coincide con la suma de los comedores (${fmtN(sum.raciones)}).`);
+      if(!hasTot) avisos.push(`${lbl}: el bloque no trae fila TOTALES; se sumaron los comedores.`);
+      bloques.push({comida:nombre,n,ptxt,rec:sum,filas});
+    }
+    if(!bloques.length) continue;
+    const ptxt=bloques[0].ptxt;
+    if(bloques.some(b=>norm(b.ptxt)!==norm(ptxt))) avisos.push('Los bloques del archivo declaran períodos distintos: '+bloques.map(b=>b.comida+' '+(b.ptxt||'—')).join(' · ')+'.');
+    const mi=MESES_FULL.findIndex(m=>norm(ptxt).includes(m)); const yr=(ptxt.match(/20\d\d/)||[''])[0];
+    const label=mi>=0?MESES_FULL[mi].charAt(0)+MESES_FULL[mi].slice(1).toLowerCase()+(yr?' '+yr:''):(ptxt||nm.trim());
+    const si=MESES_FULL.findIndex(m=>norm(nm).includes(m));
+    if(mi>=0&&si>=0&&si!==mi) avisos.push(`La hoja se llama «${nm.trim()}» pero el título dice «${ptxt}»: se usó el período del título.`);
+    const tot={label,...mk()}; bloques.forEach(b=>add(tot,b.rec));
+    const comidas={}; bloques.forEach(b=>{ comidas[b.comida]={label:b.comida,...b.rec,comedores:b.n}; });
+    return {periodos:[],total:tot,sheet:nm,formato:'comedor',mesIdx:mi,periodoTxt:label,comedores:Math.max(...bloques.map(b=>b.n)),comidas,filas:bloques.flatMap(b=>b.filas.map(x=>({...x,comida:b.comida}))),avisos};
+  }
+  return null;
+}
 function parseClasificador(wb){
+  const nuevo=parseClasificadorComedor(wb); if(nuevo) return nuevo;
   let R=null,h=-1,SN=null;
   for(const nm of wb.SheetNames){ const rr=rowsOf(wb,nm);
     for(let i=0;i<Math.min(20,rr.length);i++){ const j=rr[i].map(norm).join('|');
@@ -1131,6 +1183,7 @@ function sheetHasHeader(wb, ...must){
 }
 function sniffType(wb){
   if(sheetHasHeader(wb,'PROVEEDOR','PROYECTADAS')) return 'pagos';       // raciones semestrales (pagos)
+  if(sheetHasHeader(wb,'HOMBRES','MUJERES')&&sheetHasHeader(wb,'MAYA','MESTIZO')) return 'clasif';   // clasificador por comedor
   if(sheetHasHeader(wb,'SEXO','EDAD')) return 'clasif';                 // clasificador (checar antes que DPS)
   if(findSheet(wb,'POR SEMANA','QUINCENA','ACUMULADO SEMANAL','DESGLOCE SEMANAL')) return 'semana';
   if(sheetHasHeader(wb,'DEPARTAMENTO','COMEDOR SOCIAL','MODALIDAD')) return 'semana';   // hoja mensual de comedores (p. ej. SEPTIEMBRE)
@@ -1190,7 +1243,7 @@ function markLoaded(slot, fname, parsed){
   let summ='';
   if(slot==='semana' && parsed){ const q=state.quincena; summ = `${q?q.comedores.length:0} comedores · ${parsed.semanas.length} semanas · ${fmtN(parsed.totRac)} raciones`; }
   else if(slot==='dps' && parsed){ summ = `${parsed.nCom} comedores · ${Object.keys(parsed.depAgg).length} departamentos · ${fmtQk(parsed.totFin)}`; }
-  else if(slot==='clasif' && parsed){ summ = `${fmtN(parsed.total.raciones)} raciones · ${parsed.periodos.length} período(s) · 3 dimensiones`; }
+  else if(slot==='clasif' && parsed){ summ = parsed.formato==='comedor'?`${fmtN(parsed.total.raciones)} raciones · ${parsed.comedores} comedores · ${parsed.periodoTxt}`:`${fmtN(parsed.total.raciones)} raciones · ${parsed.periodos.length} período(s) · 3 dimensiones`; }
   else if(slot==='pagos' && parsed){ summ = `${parsed.providers.length} proveedores · ${parsed.months.length} meses · ${fmtN(parsed.totalNopag)} pendientes`; }
   else summ = 'Archivo cargado, pero no se reconoció la hoja esperada.';
   hint.innerHTML = `<b style="color:#93C5FD">${fname}</b><br>${summ}`;
@@ -2220,7 +2273,7 @@ const CATALOGO=[
  {n:'Ubicación de comedores en el mapa',v:'Mapa (nivel departamento)',slot:'dps',hoja:m=>m&&m.sheet,calc:'Un punto por municipio con comedores, en el centro del municipio (no es la dirección exacta del comedor).'},
  {n:'Meta física y presupuesto vigentes (oficial)',v:'Pestaña Fuentes › Conciliación',slot:'dps',hoja:()=>'INTEGRADO',calc:'Fila «Comedor Social» de la hoja INTEGRADO.'},
  {n:'Proyección anual (meta del velocímetro anual)',v:'Velocímetros «Acumulado del año»',slot:'semana',hoja:m=>m&&m.sheet,calc:'data/config.json si existe (meta oficial publicada); si no, total del mes × 12. Ver advertencia en Conciliación.'},
- {n:'Raciones por sexo, edad y pueblo',v:'Pestaña Clasificador',slot:'clasif',hoja:m=>m&&m.sheet,calc:'Columnas Femenino/Masculino, grupos de edad y pueblos, por período y acumulado.'},
+ {n:'Raciones por sexo, edad y pueblo',v:'Pestaña Clasificador',slot:'clasif',hoja:m=>m&&m.sheet,calc:'Columnas Femenino/Masculino (Mujeres/Hombres), grupos de edad y pueblos: por período y acumulado (formato anterior) o por comedor con fila TOTALES (formato actual).'},
  {n:'Pagos a proveedores',v:'Pestaña Pagos a proveedores',slot:'pagos',hoja:m=>m&&m.sheet,calc:'Raciones proyectadas / pagadas / no pagadas por proveedor y mes.'}
 ];
 
@@ -2256,8 +2309,15 @@ function buildChecks(){
     add(aprox?'info':'ok','Precisión de ubicación en el mapa',aprox?`${aprox} de ${d.munAgg.length} municipios no tienen coordenada exacta; su punto se coloca de forma aproximada dentro del departamento.`:'Todos los municipios tienen coordenada.');
     if(q) add(q.comedores.length===d.nCom?'ok':'warn','Cantidad de comedores: Cuota vs. Ejecución DPS',
       `Cuota por Semana (activos): ${q.comedores.length} · Ejecución DPS (con ejecución en el año): ${d.nCom}. Son universos distintos (activos hoy vs. con algún servicio en el año); citar cada cifra con su fuente.`);
-    if(cl&&cl.total){ const df=cl.total.raciones-d.totRac; const ok=Math.abs(df)/d.totRac<=0.01;
-      add(ok?'ok':'info','Raciones del Clasificador vs. Ejecución DPS',`Clasificador: ${fmtN(cl.total.raciones)} · DPS: ${fmtN(d.totRac)} · diferencia ${fmtN(df)}.`); }
+    if(cl&&cl.total){
+      if(cl.formato==='comedor'&&cl.mesIdx>=0){ const k=cl.mesIdx, tot=d.fisMes[k], des=d.desMes[k], alm=d.almMes[k], r=cl.total.raciones, mn=MESES_FULL[k].toLowerCase();
+        const close=(a,b)=>b>0&&Math.abs(a-b)/b<=0.01;
+        const cd=cl.comidas&&cl.comidas.Desayunos, ca=cl.comidas&&cl.comidas.Almuerzos;
+        add(close(r,tot)?'ok':'info','Raciones del Clasificador vs. Ejecución DPS ('+mn+')',`Clasificador: ${fmtN(r)} · DPS ${mn}: ${fmtN(tot)}${close(r,tot)?'. Coinciden.':` · diferencia ${fmtN(r-tot)}.`}`);
+        if(cd&&ca) add(close(cd.raciones,des)&&close(ca.raciones,alm)?'ok':'info','Clasificador por tipo de ración ('+mn+')',`Desayunos: ${fmtN(cd.raciones)} (DPS ${fmtN(des)}) · Almuerzos: ${fmtN(ca.raciones)} (DPS ${fmtN(alm)}).`);
+        (cl.avisos||[]).forEach(a=>add('warn','Clasificador: verificación interna',esc(a))); }
+      else { const df=cl.total.raciones-d.totRac; const ok=Math.abs(df)/d.totRac<=0.01;
+      add(ok?'ok':'info','Raciones del Clasificador vs. Ejecución DPS',`Clasificador: ${fmtN(cl.total.raciones)} · DPS: ${fmtN(d.totRac)} · diferencia ${fmtN(df)}.`); } }
   }
   SLOTS.forEach(sl=>{ if(!metaOf(sl)) add('warn',`Falta cargar: ${SRC_DEF[sl].label}`,`Alimenta: ${SRC_DEF[sl].feeds}`); else if(!metaOf(sl).recognized) add('warn',`${SRC_DEF[sl].label}: archivo cargado pero no se reconoció la estructura`,'Verifique que sea la plantilla vigente (hoja y encabezados).'); });
   if(!C.length) add('info','Cargue los archivos para ver la conciliación','');
@@ -2294,7 +2354,7 @@ function renderFuentes(focus){
       <dl class="fx-dl">
         <dt>Archivo</dt><dd>${m?m.name:`<code>${d.file}</code> (esperado)`}</dd>
         <dt>Hoja(s) usadas</dt><dd>${m?([m.sheet,m.sheetQ].filter(Boolean).join(' · ')||'<span style="color:#FBBF24">no reconocida</span>'):'—'}</dd>
-        <dt>Período detectado</dt><dd>${m&&m.mes?m.mes.texto:(sl==='dps'&&state.dps?(()=>{const l=state.dps.fisMes.reduce((a,v,i)=>v>0?i:a,-1);return l>=0?'Datos hasta '+MESES_FULL[l].toLowerCase():'—';})():'—')}</dd>
+        <dt>Período detectado</dt><dd>${m&&m.mes?m.mes.texto:(sl==='dps'&&state.dps?(()=>{const l=state.dps.fisMes.reduce((a,v,i)=>v>0?i:a,-1);return l>=0?'Datos hasta '+MESES_FULL[l].toLowerCase():'—';})():(sl==='clasif'&&state.clasificador&&state.clasificador.periodoTxt?'Período '+state.clasificador.periodoTxt:'—'))}</dd>
         <dt>Última modificación</dt><dd>${m&&m.modified?fmtFecha(m.modified):'No disponible'}</dd>
         <dt>Origen</dt><dd>${origen}</dd>
         <dt>Tamaño · huella</dt><dd>${m&&m.size?(m.size/1024).toFixed(0)+' KB':'—'} · <code>${m&&m.sha?m.sha.slice(0,12)+'…':'calculando…'}</code></dd>
