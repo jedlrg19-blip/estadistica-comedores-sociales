@@ -11,7 +11,13 @@ Cada gráfica tiene un chip `ⓘ archivo.xlsx` (lleva a esa ficha) y un botón `
 | `clasificador.xlsx` | Sexo / edad / pueblo |
 | `semestral.xlsx` | Pagos a proveedores |
 
-## Actualizar datos (administrador)
+## Publicar datos desde el sitio (botón «Publicar datos»)
+1. Entre por `https://<sitio>/admin/` (también `?editor=1`, que redirige a `/admin/`).
+2. Cargue los Excel actualizados en «Fuentes de datos» y revise Resumen y Fuentes.
+3. Presione **Publicar datos**: se hace **un commit** en GitHub con `data/*.xlsx` (los archivos cargados) y `datos.json`; Cloudflare publica en 1–2 minutos.
+4. Token: GitHub → Settings → Developer settings → Fine-grained tokens. Solo este repositorio, permiso **Contents: Read and write**, caducidad corta. Se escribe en el diálogo; no queda en el repositorio.
+
+## Actualizar datos (administrador, por Git)
 1. Reemplace el Excel en `data/` **con el mismo nombre** (commit en GitHub → Cloudflare Pages publica solo).
 2. `data/` tiene prioridad sobre `datos.json`; este solo se usa para lo que falte en `data/`.
 3. Revise la pestaña *Fuentes* → *Conciliación*: ahí aparecen diferencias entre archivos.
