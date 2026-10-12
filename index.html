@@ -554,6 +554,18 @@ html[data-theme="light"] .mlegend .sw[style*="#1d4ed8"]{background:#0F6CBD!impor
 html[data-theme="light"] .ppct{color:#107C10!important;-webkit-text-fill-color:#107C10!important;background:none!important;} html[data-theme="light"] .pcard [style*="FBBF24"],html[data-theme="light"] .pcard [style*="FB923C"]{color:#C2410C!important;}
 html[data-theme="light"] .leg-fill,html[data-theme="light"] .track{background:#E1DFDD;}
 @media print{ html[data-theme="light"],html[data-theme="light"] body{background:#fff!important;} }
+
+/* ===== Gráficas estilo tablero (Power BI) ===== */
+.insight{margin:8px 0 0;padding:7px 11px;border-left:3px solid var(--accent);background:rgba(59,130,246,.08);border-radius:0 8px 8px 0;font-size:12px;line-height:1.45;color:var(--txt);}
+.insight b{font-weight:700;}
+html[data-theme="light"] .insight{background:#EBF3FC;}
+.heat{display:grid;gap:2px;font-size:11px;overflow-x:auto;padding-bottom:4px;}
+.heat .hl{display:flex;align-items:center;font-size:11px;color:var(--muted);padding:0 8px 0 2px;white-space:nowrap;}
+.heat .hh{text-align:center;color:var(--muted);font-weight:600;padding:3px 0;font-size:10.5px;letter-spacing:.04em;text-transform:uppercase;}
+.heat .hc{height:24px;display:grid;place-items:center;border-radius:4px;font-variant-numeric:tabular-nums;font-size:10.5px;font-weight:600;cursor:default;transition:transform .12s;}
+.heat .hc:hover{transform:scale(1.12);position:relative;z-index:2;box-shadow:0 4px 12px rgba(0,0,0,.35);}
+.heat .ht{justify-content:flex-end;color:var(--txt);font-weight:700;font-variant-numeric:tabular-nums;padding-right:2px;}
+.heatleg{display:flex;align-items:center;gap:8px;font-size:10.5px;color:var(--muted);margin-top:10px;} .heatleg i{display:block;width:140px;height:8px;border-radius:99px;}
 </style>
 </head>
 <body>
@@ -839,7 +851,7 @@ function parseDPS(wb){
   const cDep=hdr.indexOf('DEPARTAMENTO'), cMun=hdr.findIndex(x=>x.includes('MUNICIPIO')), cUM=hdr.findIndex(x=>x.includes('UNIDAD'));
   let cIdx=-1; for(let j=(cUM<0?4:cUM+1);j<sub.length;j++){ if(sub[j].includes('FISICA')){cIdx=j;break;} }
   if(cIdx<0) cIdx=4;
-  const depAgg={},munAgg={}; const fisMes=Array(12).fill(0),finMes=Array(12).fill(0);
+  const depAgg={},munAgg={},depMes={}; const fisMes=Array(12).fill(0),finMes=Array(12).fill(0);
   let cur=null,nCom=0;
   for(let i=h+2;i<R.length;i++){ const r=R[i];
     if(r[cDep]&&String(r[cDep]).trim()) cur=canonDep(r[cDep]);
@@ -850,10 +862,11 @@ function parseDPS(wb){
     (depAgg[cur]=depAgg[cur]||{rac:0,fin:0}); depAgg[cur].rac+=fis; depAgg[cur].fin+=fin;
     const key=cur+'|'+String(mun).trim().toUpperCase();
     (munAgg[key]=munAgg[key]||{dep:cur,mun:String(mun).trim(),rac:0,fin:0}); munAgg[key].rac+=fis; munAgg[key].fin+=fin;
-    for(let k=0;k<12;k++){ fisMes[k]+=num(r[cIdx+k*2]); finMes[k]+=num(r[cIdx+1+k*2]); }
+    const dm=(depMes[cur]=depMes[cur]||Array(12).fill(0));
+    for(let k=0;k<12;k++){ const a=num(r[cIdx+k*2]); fisMes[k]+=a; dm[k]+=a; finMes[k]+=num(r[cIdx+1+k*2]); }
     if(norm(umv).startsWith('DESAYUNO')) nCom++;
   }
-  return {depAgg,munAgg:Object.values(munAgg),fisMes,finMes,
+  return {depAgg,depMes,munAgg:Object.values(munAgg),fisMes,finMes,
           totRac:Object.values(depAgg).reduce((a,v)=>a+v.rac,0),
           totFin:Object.values(depAgg).reduce((a,v)=>a+v.fin,0),nCom,sheet:sn,integrado:parseIntegrado(wb)};
 }
@@ -1445,7 +1458,7 @@ if(window.Chart){
   const dd=Chart.defaults.datasets.doughnut;
   dd.borderRadius=7; dd.spacing=3; dd.hoverOffset=12; dd.borderWidth=0; dd.hoverBorderWidth=0;
   const bd=Chart.defaults.datasets.bar;
-  bd.borderRadius=8; bd.borderSkipped=false; bd.maxBarThickness=52;
+  bd.borderRadius=4; bd.borderSkipped='start'; bd.maxBarThickness=26;
   Chart.defaults.datasets.line.borderWidth=2.5; Chart.defaults.datasets.line.pointRadius=0;
   Chart.defaults.datasets.line.pointHoverRadius=6; Chart.defaults.datasets.line.pointHoverBorderColor='#fff'; Chart.defaults.datasets.line.pointHoverBorderWidth=2; Chart.defaults.datasets.line.tension=.4;
   // Plugin: total dibujado al centro de cada dona
@@ -1472,18 +1485,14 @@ const DL_PCT = {display:c=>{ const d=c.dataset.data, t=d.reduce((a,b)=>a+(+b||0)
 function destroyCharts(){ for(const k in charts){ try{charts[k].destroy();}catch(e){} delete charts[k]; } }
 const gtQ=v=>'Q '+Number(v).toLocaleString('es-GT',{maximumFractionDigits:0});
 function tt(cb){ return {callbacks:cb}; }
-// Relleno con degradado vertical para gráficas de área
-function areaGrad(hex){
-  return (ctx)=>{ const ch=ctx.chart, a=ch.chartArea; if(!a) return hex+'22';
-    const g=ch.ctx.createLinearGradient(0,a.top,0,a.bottom);
-    g.addColorStop(0,hex+'6E'); g.addColorStop(.55,hex+'24'); g.addColorStop(1,hex+'03'); return g; };
-}
-// Degradado para barras (vertical u horizontal)
-function barGrad(hex,horiz){
-  return (ctx)=>{ const ch=ctx.chart, a=ch.chartArea; if(!a) return hex;
-    const g=horiz? ch.ctx.createLinearGradient(a.left,0,a.right,0) : ch.ctx.createLinearGradient(0,a.bottom,0,a.top);
-    g.addColorStop(0,hex+'85'); g.addColorStop(1,hex); return g; };
-}
+// Relleno plano (marcas limpias, estilo tablero): el área es solo un tinte; la barra es color sólido
+function areaGrad(hex){ return hex+'1A'; }
+function barGrad(hex){ return hex; }
+const SERC={light:['#2a78d6','#eb6834','#1baf7a','#eda100','#e87ba4','#008300','#6250d6','#e34948'],
+            dark:['#3987e5','#d95926','#199e70','#c98500','#d55181','#008300','#9085e9','#e66767']};   // paleta categórica validada (claro/oscuro)
+const SER=i=>SERC[isLight()?'light':'dark'][i];
+const fmtK=v=>{ v=+v||0; const a=Math.abs(v); return a>=1e6?(v/1e6).toLocaleString('es-GT',{maximumFractionDigits:1})+' M': a>=1e3?(v/1e3).toLocaleString('es-GT',{maximumFractionDigits:0})+' k':String(Math.round(v)); };
+const insight=h=>`<div class="insight">${h}</div>`;
 // Leyenda de dona con total y % a la vista (además del tooltip al posicionarse)
 function dLegend(chart){
   const ds=chart.data.datasets[0], data=(ds&&ds.data)||[];
@@ -1497,115 +1506,123 @@ function dLegend(chart){
   });
 }
 
+function chartOpts(o){ // opciones comunes: rejilla fina y sólida, sin marco, ticks compactos
+  return Object.assign({maintainAspectRatio:false,interaction:{mode:'index',intersect:false}},o); }
+const DLB=(fmt,extra)=>Object.assign({display:true,anchor:'end',align:'end',color:dlc(),font:{size:10.5,weight:600},formatter:fmt},extra||{});
+function renderHeat(p3){
+  if(!p3.depMes) return '';
+  const idx=[]; p3.fisMes.forEach((v,i)=>{ if(v>0) idx.push(i); });
+  const rows=Object.entries(p3.depMes).map(([d,a])=>[d,a,idx.reduce((t,k)=>t+a[k],0)]).sort((a,b)=>b[2]-a[2]);
+  const mx=Math.max(1,...rows.flatMap(r=>idx.map(k=>r[1][k]))), L=isLight(), base=L?[15,108,189]:[57,135,229];
+  let h=`<div class="heat" style="grid-template-columns:150px repeat(${idx.length},minmax(46px,1fr)) 78px"><div></div>${idx.map(k=>`<div class="hh">${MESES[k]}</div>`).join('')}<div class="hh" style="text-align:right">Total</div>`;
+  rows.forEach(r=>{ h+=`<div class="hl">${r[0]}</div>`+idx.map(k=>{ const v=r[1][k], a=v?0.10+0.88*(v/mx):0.04;
+      return `<div class="hc" style="background:rgba(${base.join(',')},${a.toFixed(2)});color:${a>0.55?'#fff':'var(--txt)'}" title="${r[0]} · ${MESES_FULL[k].toLowerCase()}: ${fmtN(v)} raciones">${v?fmtK(v):'·'}</div>`; }).join('')+`<div class="hl ht">${fmtN(r[2])}</div>`; });
+  return h+`</div><div class="heatleg">Menos<i style="background:linear-gradient(90deg,rgba(${base.join(',')},.10),rgba(${base.join(',')},.98))"></i>Más raciones</div>`;
+}
 function renderCharts(){
   const host=$('#graf-content'); destroyCharts();
   const p1=state.semana, p2=state.quincena, p3=state.dps;
   if(!p1 && !p3){
-    host.innerHTML = `<div class="card"><div class="empty">
-      <svg width="44" height="44" viewBox="0 0 24 24" fill="none"><rect x="3" y="12" width="4" height="8" rx="1" stroke="#3B82F6" stroke-width="1.5"/><rect x="10" y="7" width="4" height="13" rx="1" stroke="#60A5FA" stroke-width="1.5"/><rect x="17" y="3" width="4" height="17" rx="1" stroke="#34D399" stroke-width="1.5"/></svg>
-      <div>Cargue arriba los libros de Excel. Las gráficas semanales y anuales aparecerán aquí en cuanto haya datos.</div></div></div>`;
+    host.innerHTML = `<div class="card"><div class="empty"><div>Cargue arriba los libros de Excel. Las gráficas aparecerán aquí en cuanto haya datos.</div></div></div>`;
     return;
   }
   let h='';
+  const mIdx=[]; if(p3) p3.fisMes.forEach((v,i)=>{ if(v>0||p3.finMes[i]>0) mIdx.push(i); });
+  /* ---- Anual (DPS) ---- */
+  h+=`<div class="sect-h"><span class="k">Ejecución anual 2026 · Ejecución DPS</span><span class="ln"></span></div>`;
+  let insRac='',insFin='',insDep='',insSh='';
+  if(p3){
+    const fa=mIdx.map(i=>p3.fisMes[i]), L=fa.length-1;
+    if(L>0){ const d=(fa[L]-fa[L-1])/fa[L-1]*100; insRac=insight(`<b>${MESES_FULL[mIdx[L]].toLowerCase()}</b>: ${fmtN(fa[L])} raciones, <b>${d>=0?'+':''}${d.toFixed(1)}%</b> frente a ${MESES_FULL[mIdx[L-1]].toLowerCase()}. Máximo del año.`.replace('. Máximo del año.',fa[L]>=Math.max(...fa)?'. Es el máximo del año.':'.')); }
+    const sinF=mIdx.filter(i=>p3.fisMes[i]>0&&!(p3.finMes[i]>0)).map(i=>MESES_FULL[i].toLowerCase());
+    insFin=insight(sinF.length?`<b>${sinF.join(', ')}</b> sin monto registrado en el archivo (raciones sí). Acumulado: <b>${fmtQk(p3.totFin)}</b>.`:`Acumulado 2026: <b>${fmtQk(p3.totFin)}</b>.`);
+    const dep=Object.entries(p3.depAgg).sort((a,b)=>b[1].fin-a[1].fin); const t3=dep.slice(0,3).reduce((a,x)=>a+x[1].fin,0)/p3.totFin*100;
+    insDep=insight(`<b>${dep.slice(0,3).map(x=>x[0]).join(', ')}</b> concentran el <b>${t3.toFixed(0)}%</b> del monto. Clic en una barra para verla en el mapa.`);
+    const dr=Object.entries(p3.depAgg).sort((a,b)=>b[1].rac-a[1].rac); insSh=insight(`El primer departamento (<b>${dr[0][0]}</b>) aporta <b>${(dr[0][1].rac/p3.totRac*100).toFixed(1)}%</b> de las raciones; los 8 primeros suman <b>${(dr.slice(0,8).reduce((a,x)=>a+x[1].rac,0)/p3.totRac*100).toFixed(0)}%</b>.`);
+    h+=`<div class="grid">
+      <div class="card"><h3>Raciones servidas por mes <span class="src">Ejecución DPS 2026</span></h3><div class="csub">Cada columna es un mes con ejecución; la más oscura es el último mes.</div><div class="chartbox"><canvas id="c_mes_rac"></canvas></div>${insRac}</div>
+      <div class="card"><h3>Monto ejecutado por mes <span class="src">Quetzales</span></h3><div class="csub">Misma escala de meses; un mes sin columna indica monto en Q0 en el archivo.</div><div class="chartbox"><canvas id="c_mes_fin"></canvas></div>${insFin}</div>
+      <div class="card full"><h3>Mapa de calor · raciones por departamento y mes <span class="src">Ejecución DPS 2026</span><span class="srcchip" data-srcgo="dps">ⓘ ${srcShort('dps')}</span></h3><div class="csub">Intensidad = raciones servidas. Pase el cursor sobre una celda para ver el valor exacto.</div>${renderHeat(p3)}</div>
+      <div class="card"><h3>Ejecución financiera por departamento <span class="src">Acumulado 2026</span></h3><div class="chartbox tall" style="height:520px"><canvas id="c_dep_fin"></canvas></div>${insDep}</div>
+      <div class="card"><h3>Participación en raciones por departamento <span class="src">% del total</span></h3><div class="csub">Cada departamento como porcentaje de las raciones del año (top 10 y «Otros»).</div><div class="chartbox tall" style="height:470px"><canvas id="c_dep_sh"></canvas></div>${insSh}</div>
+    </div>`;
+  } else { h+=emptyBlock('Cargue <b>Ejecución DPS 2026</b> para ver la tendencia mensual y el ranking por departamento.'); }
   /* ---- Semanal ---- */
   h+=`<div class="sect-h"><span class="k">Ejecución semanal · Cuota por Semana</span><span class="ln"></span></div>`;
   if(p1){
     h+=`<div class="grid">
-      <div class="card"><h3>Raciones por semana <span class="src">Servidas vs proyección</span></h3><div class="csub">Semanas ya servidas contra las proyectadas del mes.</div><div class="chartbox"><canvas id="c_sem_rac"></canvas></div></div>
-      <div class="card"><h3>Ejecución financiera semanal <span class="src">Quetzales</span></h3><div class="csub">Monto ejecutado y proyectado por semana.</div><div class="chartbox"><canvas id="c_sem_fin"></canvas></div></div>
+      <div class="card"><h3>Raciones por semana <span class="src">Servidas vs proyección</span></h3><div class="csub">Azul = semana servida · naranja = proyectada.</div><div class="chartbox"><canvas id="c_sem_rac"></canvas></div>${insight(`Servidas <b>${fmtN(p1.servRac)}</b> de <b>${fmtN(p1.totRac)}</b> proyectadas (<b>${(p1.totRac?p1.servRac/p1.totRac*100:0).toFixed(1)}%</b>).`)}</div>
+      <div class="card"><h3>Monto semanal <span class="src">Quetzales</span></h3><div class="csub">Parte de cero: la altura de la columna es proporcional al monto.</div><div class="chartbox"><canvas id="c_sem_fin"></canvas></div>${insight(`Costo medio <b>Q ${p1.precioMedio.toFixed(2)}</b> por ración servida · total ejecutado <b>${fmtQk(p1.servFin)}</b>.`)}</div>
     </div>`;
   } else { h+=emptyBlock('Cargue <b>Cuota por Semana</b> para ver la ejecución semanal.'); }
-
-  /* ---- Anual ---- */
-  h+=`<div class="sect-h"><span class="k">Ejecución anual 2026 · Ejecución DPS</span><span class="ln"></span></div>`;
-  if(p3){
-    h+=`<div class="grid">
-      <div class="card full"><h3>Tendencia mensual: raciones y monto <span class="src">Ejecución DPS 2026</span></h3><div class="csub">Barras: raciones servidas por mes. Línea: monto ejecutado (eje derecho). Solo meses con ejecución.</div><div class="chartbox"><canvas id="c_mes"></canvas></div></div>
-      <div class="card full"><h3>Ejecución financiera por departamento <span class="src">Acumulado 2026</span></h3><div class="chartbox tall" style="height:460px"><canvas id="c_dep_fin"></canvas></div></div>
-      <div class="card"><h3>Distribución de raciones por departamento <span class="src">% del total</span></h3><div class="csub">Qué parte del total de raciones servidas en el año corresponde a cada departamento. Se muestran los 8 de mayor volumen; el resto se agrupa en «Otros».</div><div class="chartbox"><canvas id="c_dep_rac"></canvas></div></div>
-    </div>`;
-  } else { h+=emptyBlock('Cargue <b>Ejecución DPS 2026</b> para ver la tendencia mensual y el ranking por departamento.'); }
-
   /* ---- Comedores ---- */
   if(p2){
+    const top=p2.comedores.slice().sort((a,b)=>b.ejec-a.ejec).slice(0,10), tt10=top.reduce((a,c)=>a+c.ejec,0), all=p2.comedores.reduce((a,c)=>a+c.ejec,0);
     h+=`<div class="sect-h"><span class="k">Comedores y modalidades · Cuota Quincena</span><span class="ln"></span></div>`;
     h+=`<div class="grid">
-      <div class="card full"><h3>Top 10 comedores por ejecución <span class="src">Quetzales</span></h3><div class="chartbox tall"><canvas id="c_top"></canvas></div></div>
+      <div class="card full"><h3>Top 10 comedores por ejecución <span class="src">Quetzales</span></h3><div class="chartbox tall"><canvas id="c_top"></canvas></div>${insight(`Los 10 primeros concentran <b>${all?(tt10/all*100).toFixed(1):0}%</b> de la ejecución de la quincena (${p2.comedores.length} comedores).`)}</div>
       <div class="card"><h3>Modalidad de comedor <span class="src">Fijo / Móvil</span></h3><div class="chartbox"><canvas id="c_mod"></canvas></div></div>
       <div class="card"><h3>Modalidad de contratación <span class="src">Comedores</span></h3><div class="chartbox"><canvas id="c_contr"></canvas></div></div>
       <div class="card"><h3>Raciones servidas por tiempo <span class="src">Desayuno / Almuerzo</span></h3><div class="chartbox"><canvas id="c_da"></canvas></div></div>
     </div>`;
   }
   host.innerHTML=h;
+  host.querySelectorAll('[data-srcgo]').forEach(a=>a.addEventListener('click',()=>goSource(a.dataset.srcgo)));
 
+  const xTicks=f=>({ticks:{callback:f},grid:{color:gridc(),lineWidth:1,drawTicks:false},border:{display:false}});
+  const noGrid={grid:{display:false},border:{color:gridc()}};
   /* ===== build charts ===== */
-  if(p1){
-    const lbls=p1.semanas.map(s=>s.label);
-    charts.sem_rac=new Chart($('#c_sem_rac'),{type:'bar',data:{labels:lbls,datasets:[{
-      label:'Raciones', data:p1.semanas.map(s=>s.rac),
-      backgroundColor:p1.semanas.map(s=>s.tipo==='servida'?'#3B82F6':'rgba(251,191,36,.72)'),
-      borderRadius:8 }]},
-      plugins:DL,
-      options:{maintainAspectRatio:false,layout:{padding:{top:20}},plugins:{legend:{display:false},
-        datalabels:{display:true,anchor:'end',align:'end',color:dlc(),font:{size:10.5,weight:600},formatter:v=>fmtN(v)},
-        tooltip:tt({label:c=>` ${fmtN(c.raw)} raciones (${p1.semanas[c.dataIndex].tipo})`})},
-        scales:{y:{ticks:{callback:v=>fmtN(v)},grid:{color:gridc()}},x:{grid:{display:false}}}}});
-    charts.sem_fin=new Chart($('#c_sem_fin'),{type:'line',data:{labels:lbls,datasets:[{
-      label:'Ejecución (Q)', data:p1.semanas.map(s=>s.fin), tension:.35, fill:true,
-      backgroundColor:areaGrad('#34D399'), borderColor:'#34D399', pointBackgroundColor:'#34D399', pointRadius:4, borderWidth:2 }]},
-      options:{maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:tt({label:c=>' '+fmtQ(c.raw)})},
-        scales:{y:{ticks:{callback:v=>gtQ(v)},grid:{color:gridc()}},x:{grid:{display:false}}}}});
-  }
   if(p3){
-    const mIdx=[]; p3.fisMes.forEach((v,i)=>{ if(v>0||p3.finMes[i]>0) mIdx.push(i); });
-    charts.mes=new Chart($('#c_mes'),{data:{labels:mIdx.map(i=>MESES[i]),datasets:[
-      {type:'bar',label:'Raciones',data:mIdx.map(i=>p3.fisMes[i]),backgroundColor:barGrad('#3B82F6',false),borderRadius:8,yAxisID:'y',order:2,
-        datalabels:{display:true,anchor:'end',align:'end',color:dlc(),font:{size:10.5,weight:600},formatter:v=>fmtN(v)}},
-      {type:'line',label:'Monto ejecutado (Q)',data:mIdx.map(i=>p3.finMes[i]),borderColor:'#FBBF24',backgroundColor:'#FBBF24',tension:.35,borderWidth:2.5,pointRadius:4,yAxisID:'y1',order:1,datalabels:{display:false}}]},
-      plugins:DL,
-      options:{maintainAspectRatio:false,interaction:{mode:'index',intersect:false},layout:{padding:{top:18}},
-        plugins:{legend:{display:true,position:'top',align:'end',labels:{boxWidth:10,usePointStyle:true}},datalabels:{display:false},
-          tooltip:tt({label:c=>c.dataset.yAxisID==='y1'?' '+fmtQ(c.raw):' '+fmtN(c.raw)+' raciones'})},
-        scales:{y:{beginAtZero:true,ticks:{callback:v=>fmtN(v)},grid:{color:gridc()}},
-                y1:{position:'right',beginAtZero:true,ticks:{callback:v=>fmtQk(v)},grid:{display:false}},x:{grid:{display:false}}}}});
+    const lastI=mIdx.length-1, lbl=mIdx.map(i=>MESES[i]);
+    charts.mes_rac=new Chart($('#c_mes_rac'),{type:'bar',data:{labels:lbl,datasets:[{label:'Raciones',data:mIdx.map(i=>p3.fisMes[i]),
+      backgroundColor:mIdx.map((_,k)=>k===lastI?SER(0):SER(0)+'99'),maxBarThickness:34}]},plugins:DL,
+      options:chartOpts({layout:{padding:{top:22}},plugins:{legend:{display:false},datalabels:DLB(v=>fmtK(v)),tooltip:tt({label:c=>' '+fmtN(c.raw)+' raciones'})},
+        scales:{y:Object.assign({beginAtZero:true},xTicks(v=>fmtK(v))),x:noGrid}})});
+    charts.mes_fin=new Chart($('#c_mes_fin'),{type:'bar',data:{labels:lbl,datasets:[{label:'Monto (Q)',data:mIdx.map(i=>p3.finMes[i]),
+      backgroundColor:mIdx.map((_,k)=>k===lastI?SER(1):SER(1)+'99'),maxBarThickness:34}]},plugins:DL,
+      options:chartOpts({layout:{padding:{top:22}},plugins:{legend:{display:false},datalabels:DLB(v=>v>0?fmtQk(v):'sin monto',{color:dlc()}),tooltip:tt({label:c=>' '+fmtQ(c.raw)})},
+        scales:{y:Object.assign({beginAtZero:true},xTicks(v=>fmtK(v))),x:noGrid}})});
 
     const dep=Object.entries(p3.depAgg).sort((a,b)=>b[1].fin-a[1].fin);
-    charts.dep_fin=new Chart($('#c_dep_fin'),{type:'bar',data:{labels:dep.map(d=>d[0]),datasets:[{
-      label:'Ejecución (Q)', data:dep.map(d=>d[1].fin), backgroundColor:barGrad('#3B82F6',true), borderRadius:7 }]},
-      plugins:DL,
-      options:{indexAxis:'y',maintainAspectRatio:false,layout:{padding:{right:64}},
+    charts.dep_fin=new Chart($('#c_dep_fin'),{type:'bar',data:{labels:dep.map(d=>d[0]),datasets:[{label:'Ejecución (Q)',data:dep.map(d=>d[1].fin),
+      backgroundColor:dep.map((_,k)=>k<3?SER(0):SER(0)+'8C'),maxBarThickness:16}]},plugins:DL,
+      options:chartOpts({indexAxis:'y',interaction:{mode:'nearest',axis:'y',intersect:false},layout:{padding:{right:56}},
         onClick:(e,els)=>{ if(els.length){ const d=dep[els[0].index][0]; switchTab('mapa'); setTimeout(()=>mSeleccionarDep(d),450); } },
         onHover:(e,els)=>{ e.native.target.style.cursor=els.length?'pointer':'default'; },
-        plugins:{legend:{display:false},datalabels:{display:true,anchor:'end',align:'right',color:dlc(),font:{size:10.5,weight:600},formatter:v=>fmtQk(v)},
-          tooltip:tt({label:c=>' '+fmtQ(c.raw),afterLabel:()=>'Clic para ver en el mapa'})},
-        scales:{x:{ticks:{callback:v=>gtQ(v)},grid:{color:gridc()}},y:{grid:{display:false}}}}});
+        plugins:{legend:{display:false},datalabels:DLB(v=>fmtQk(v),{align:'right'}),tooltip:tt({label:c=>' '+fmtQ(c.raw),afterLabel:()=>'Clic para ver en el mapa'})},
+        scales:{x:Object.assign({beginAtZero:true},xTicks(v=>fmtK(v))),y:{grid:{display:false},border:{display:false},ticks:{font:{size:10.5}}}}})});
 
-    const drac=Object.entries(p3.depAgg).sort((a,b)=>b[1].rac-a[1].rac);
-    const topN=drac.slice(0,8), otros=drac.slice(8).reduce((a,d)=>a+d[1].rac,0);
-    const dl=topN.map(d=>d[0]).concat(otros>0?['Otros']:[]);
-    const dv=topN.map(d=>d[1].rac).concat(otros>0?[otros]:[]);
-    charts.dep_rac=new Chart($('#c_dep_rac'),{type:'doughnut',data:{labels:dl,datasets:[{data:dv,backgroundColor:PALETTE}]},
-      plugins:DL,
-      options:{maintainAspectRatio:false,cutout:'58%',plugins:{legend:{position:'right',labels:{generateLabels:dLegend}},datalabels:DL_PCT,
-        tooltip:tt({label:c=>{const t=dv.reduce((a,b)=>a+b,0);return ' '+fmtN(c.raw)+' ('+(c.raw/t*100).toFixed(1)+'%)';}})}}});
+    const drac=Object.entries(p3.depAgg).sort((a,b)=>b[1].rac-a[1].rac), topN=drac.slice(0,10), otros=drac.slice(10).reduce((a,d)=>a+d[1].rac,0);
+    const sl=topN.map(d=>d[0]).concat(otros>0?['Otros']:[]), sv=topN.map(d=>d[1].rac/p3.totRac*100).concat(otros>0?[otros/p3.totRac*100]:[]);
+    charts.dep_sh=new Chart($('#c_dep_sh'),{type:'bar',data:{labels:sl,datasets:[{label:'% de raciones',data:sv,
+      backgroundColor:sl.map((n,k)=>n==='Otros'?(isLight()?'#A19F9D':'#6B7C93'):SER(2)),maxBarThickness:16}]},plugins:DL,
+      options:chartOpts({indexAxis:'y',interaction:{mode:'nearest',axis:'y',intersect:false},layout:{padding:{right:44}},
+        plugins:{legend:{display:false},datalabels:DLB(v=>v.toFixed(1)+'%',{align:'right'}),tooltip:tt({label:c=>' '+c.raw.toFixed(1)+'% · '+fmtN(c.raw/100*p3.totRac)+' raciones'})},
+        scales:{x:Object.assign({beginAtZero:true},xTicks(v=>v+'%')),y:{grid:{display:false},border:{display:false},ticks:{font:{size:10.5}}}}})});
+  }
+  if(p1){
+    const lb=p1.semanas.map(s=>s.label);
+    charts.sem_rac=new Chart($('#c_sem_rac'),{type:'bar',data:{labels:lb,datasets:[{label:'Raciones',data:p1.semanas.map(s=>s.rac),
+      backgroundColor:p1.semanas.map(s=>s.tipo==='servida'?SER(0):SER(1)),maxBarThickness:46}]},plugins:DL,
+      options:chartOpts({layout:{padding:{top:22}},plugins:{legend:{display:false},datalabels:DLB(v=>fmtN(v)),tooltip:tt({label:c=>` ${fmtN(c.raw)} raciones (${p1.semanas[c.dataIndex].tipo})`})},
+        scales:{y:Object.assign({beginAtZero:true},xTicks(v=>fmtK(v))),x:noGrid}})});
+    charts.sem_fin=new Chart($('#c_sem_fin'),{type:'bar',data:{labels:lb,datasets:[{label:'Monto (Q)',data:p1.semanas.map(s=>s.fin),
+      backgroundColor:p1.semanas.map(s=>s.tipo==='servida'?SER(2):SER(3)),maxBarThickness:46}]},plugins:DL,
+      options:chartOpts({layout:{padding:{top:22}},plugins:{legend:{display:false},datalabels:DLB(v=>fmtQk(v)),tooltip:tt({label:c=>' '+fmtQ(c.raw)})},
+        scales:{y:Object.assign({beginAtZero:true},xTicks(v=>fmtK(v))),x:noGrid}})});
   }
   if(p2){
     const top=p2.comedores.slice().sort((a,b)=>b.ejec-a.ejec).slice(0,10);
-    charts.top=new Chart($('#c_top'),{type:'bar',data:{labels:top.map(c=>c.com+' · '+c.dep),datasets:[{
-      label:'Ejecución (Q)', data:top.map(c=>c.ejec), backgroundColor:barGrad('#34D399',true), borderRadius:5 }]},
-      plugins:DL,
-      options:{indexAxis:'y',maintainAspectRatio:false,layout:{padding:{right:64}},plugins:{legend:{display:false},
-        datalabels:{display:true,anchor:'end',align:'right',color:dlc(),font:{size:10.5,weight:600},formatter:v=>fmtQk(v)},tooltip:tt({label:c=>' '+fmtQ(c.raw)})},
-        scales:{x:{ticks:{callback:v=>gtQ(v)},grid:{color:gridc()}},y:{grid:{display:false},ticks:{font:{size:10}}}}}});
-    charts.mod=new Chart($('#c_mod'),{type:'doughnut',data:{labels:['Fijo','Móvil'],datasets:[{data:[p2.mFijo,p2.mMovil],backgroundColor:['#3B82F6','#FBBF24']}]},
-      plugins:DL,options:{maintainAspectRatio:false,cutout:'60%',plugins:{legend:{position:'bottom',labels:{generateLabels:dLegend}},datalabels:DL_PCT,tooltip:tt({label:c=>' '+c.raw+' comedores'})}}});
+    charts.top=new Chart($('#c_top'),{type:'bar',data:{labels:top.map(c=>c.com+' · '+c.dep),datasets:[{label:'Ejecución (Q)',data:top.map(c=>c.ejec),backgroundColor:SER(2),maxBarThickness:16}]},plugins:DL,
+      options:chartOpts({indexAxis:'y',interaction:{mode:'nearest',axis:'y',intersect:false},layout:{padding:{right:56}},
+        plugins:{legend:{display:false},datalabels:DLB(v=>fmtQk(v),{align:'right'}),tooltip:tt({label:c=>' '+fmtQ(c.raw)})},
+        scales:{x:Object.assign({beginAtZero:true},xTicks(v=>fmtK(v))),y:{grid:{display:false},border:{display:false},ticks:{font:{size:10.5}}}}})});
+    const donut=(id,labels,data,cols,tipf)=>new Chart($(id),{type:'doughnut',data:{labels,datasets:[{data,backgroundColor:cols,borderWidth:2,borderColor:isLight()?'#fff':'#0F1B2E',spacing:0,borderRadius:0}]},plugins:DL,
+      options:{maintainAspectRatio:false,cutout:'66%',plugins:{legend:{position:'bottom',labels:{generateLabels:dLegend}},datalabels:DL_PCT,tooltip:tt({label:tipf})}}});
+    charts.mod=donut('#c_mod',['Fijo','Móvil'],[p2.mFijo,p2.mMovil],[SER(0),SER(1)],c=>' '+c.raw+' comedores');
     const ck=Object.keys(p2.contr), cv=ck.map(k=>p2.contr[k]);
-    charts.contr=new Chart($('#c_contr'),{type:'doughnut',data:{labels:ck.map(k=>k.charAt(0)+k.slice(1).toLowerCase()),datasets:[{data:cv,backgroundColor:['#60A5FA','#A78BFA','#34D399','#FBBF24']}]},
-      plugins:DL,options:{maintainAspectRatio:false,cutout:'60%',plugins:{legend:{position:'bottom',labels:{generateLabels:dLegend}},datalabels:DL_PCT,tooltip:tt({label:c=>' '+c.raw+' comedores'})}}});
-    charts.da=new Chart($('#c_da'),{type:'doughnut',data:{labels:['Desayuno','Almuerzo'],datasets:[{data:[p2.totDes,p2.totAlm],backgroundColor:['#FBBF24','#3B82F6']}]},
-      plugins:DL,
-      options:{maintainAspectRatio:false,cutout:'60%',plugins:{legend:{position:'bottom',labels:{generateLabels:dLegend}},datalabels:DL_PCT,
-        tooltip:tt({label:c=>{const t=p2.totDes+p2.totAlm;return ' '+fmtN(c.raw)+' ('+(c.raw/t*100).toFixed(1)+'%)';}})}}});
+    charts.contr=donut('#c_contr',ck.map(k=>k.charAt(0)+k.slice(1).toLowerCase()),cv,[SER(0),SER(1),SER(2)].slice(0,ck.length),c=>' '+c.raw+' comedores');
+    charts.da=donut('#c_da',['Desayuno','Almuerzo'],[p2.totDes,p2.totAlm],[SER(3),SER(0)],c=>{const t=p2.totDes+p2.totAlm;return ' '+fmtN(c.raw)+' ('+(c.raw/t*100).toFixed(1)+'%)';});
   }
 }
 
@@ -2088,7 +2105,7 @@ function renderFuentes(focus){
 function goSource(slot){ switchTab('fuentes'); renderFuentes(slot); }
 
 /* Chips de fuente y botón CSV en cada tarjeta; datos de cada gráfica descargables (cifras agregadas) */
-const CANVAS_SRC={c_sem_rac:'semana',c_sem_fin:'semana',c_mes:'dps',c_dep_fin:'dps',c_dep_rac:'dps',c_top:'semana',c_mod:'semana',c_contr:'semana',c_da:'semana'};
+const CANVAS_SRC={c_sem_rac:'semana',c_sem_fin:'semana',c_mes_rac:'dps',c_mes_fin:'dps',c_dep_fin:'dps',c_dep_sh:'dps',c_top:'semana',c_mod:'semana',c_contr:'semana',c_da:'semana'};
 function chartCSV(canvas){ const ch=window.Chart&&Chart.getChart(canvas); if(!ch) return;
   const q=v=>'"'+String(v).replace(/"/g,'""')+'"'; const rows=[['Etiqueta'].concat(ch.data.datasets.map((d,i)=>d.label||('Serie '+(i+1))))];
   ch.data.labels.forEach((l,i)=>rows.push([l].concat(ch.data.datasets.map(d=>d.data[i]))));
