@@ -1170,18 +1170,23 @@ function applyStore(store,skip){
     try{ const buf=b64ToBuf(rec.b64); const wb=XLSX.read(buf,{type:'array'}); applyWorkbook(slot,wb,rec.name,{buf,origin:'datos.json'}); n++; }catch(e){ console.warn('bundle',slot,e); } }
   return n;
 }
+/* PRECEDENCIA de datos (de mayor a menor):
+   1) Archivos cargados por el administrador en su navegador (borradores) — solo en modo admin.
+   2) Lo publicado en el repositorio: data/*.xlsx (+ data/publicado.json con la versión).
+   3) datos.json: SOLO si no existe ningún data/*.xlsx (compatibilidad). Nunca tapa un archivo de data/. */
+let PUBINFO=null; const UNREC=[];
+const SLOT_OF_PATH={'data/cuota.xlsx':'semana','data/dps.xlsx':'dps','data/clasificador.xlsx':'clasif','data/semestral.xlsx':'pagos'};
+async function fetchFresh(path){ return fetch(path+(path.includes('?')?'&':'?')+'v='+Date.now(),{cache:'no-store'}); }
 async function loadPublishedBundle(){
-  // 1) FUENTE DE VERDAD: Excel sueltos en /data/ (reemplazar el archivo y hacer commit). El tipo se detecta por contenido.
-  let n=0; const got={};
-  for(const path of ['data/cuota.xlsx','data/dps.xlsx','data/clasificador.xlsx','data/semestral.xlsx']){
-    try{ const res=await fetch(path,{cache:'no-cache'}); if(!res.ok) continue;
-      const buf=await res.arrayBuffer(); const wb=XLSX.read(buf,{type:'array'}); const slot=sniffType(wb);
-      if(slot && !got[slot]){ applyWorkbook(slot,wb,path.split('/').pop(),{buf,origin:path,modified:res.headers.get('Last-Modified')}); got[slot]=1; n++; } }catch(e){}
+  let n=0, present=0;
+  try{ const r=await fetchFresh('data/publicado.json'); if(r.ok&&!(r.headers.get('content-type')||'').includes('html')){ const j=await r.json(); if(j&&j.version) PUBINFO=j; } }catch(e){}
+  for(const path of Object.keys(SLOT_OF_PATH)){
+    try{ const res=await fetchFresh(path); if(!res.ok||(res.headers.get('content-type')||'').includes('html')) continue;
+      present++; const buf=await res.arrayBuffer(); const wb=XLSX.read(buf,{type:'array'}); const slot=sniffType(wb);
+      if(slot){ applyWorkbook(slot,wb,path.split('/').pop(),{buf,origin:path,modified:res.headers.get('Last-Modified')}); n++; }
+      else UNREC.push(path); }catch(e){ UNREC.push(path); }
   }
-  // 2) Respaldo: datos.json (paquete del botón «Publicar datos») solo para lo que /data/ no aportó,
-  //    para que un paquete viejo nunca tape un Excel más nuevo.
-  try{ const res=await fetch('datos.json',{cache:'no-cache'});
-    if(res.ok){ n+=applyStore(await res.json(),got); } }catch(e){}
+  if(present===0){ try{ const res=await fetchFresh('datos.json'); if(res.ok) n+=applyStore(await res.json(),{}); }catch(e){} }
   return n;   // 0 → no hay datos publicados → modo carga local
 }
 function enterViewerMode(){
@@ -1372,6 +1377,7 @@ function renderGauges(){
   }
 }
 function emptyBlock(msg){
+  if(viewerMode) msg='Esta información se está actualizando. Vuelva a consultarla en unos minutos.';
   return `<div class="card"><div class="empty">
     <svg width="40" height="40" viewBox="0 0 24 24" fill="none"><path d="M4 16l4.5-5 3.5 3.5L20 7" stroke="#3B82F6" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 20h16" stroke="#3B82F6" stroke-width="1.6" stroke-linecap="round"/></svg>
     <div>${msg}</div></div></div>`;
@@ -2100,6 +2106,7 @@ function init(){
     if(n>0){ if(!editorMode) enterViewerMode(); else restoreFromStorage(); }   // sin editor → solo lectura; con editor, sus archivos cargados (borradores) tienen prioridad
     else { restoreFromStorage(); }             // sin publicar → borradores locales
     updateFeedStatus(); updateClearBtn(); updatePublishBtn(); renderActive();
+    if(PUBINFO){ const ft=document.querySelector('.foot'); if(ft){ const sp=document.createElement('span'); sp.style.cssText='display:block;margin-top:6px'; sp.innerHTML='<b>Datos publicados el</b> '+fmtFecha(PUBINFO.version)+'.'; ft.appendChild(sp); } }
   })();
 }
 
@@ -2223,6 +2230,9 @@ function requestUpdate(slot){
 }
 function renderFuentes(focus){
   const host=$('#fuentes-content'); if(!host) return;
+  const avisos=[]; if(UNREC.length) avisos.push(`<b>Archivo no reconocido:</b> ${UNREC.join(', ')}. La estructura no coincide con ninguna plantilla conocida; <b>no se usó ningún respaldo</b> para evitar mostrar cifras viejas.`);
+  SLOTS.forEach(sl=>{ const m=metaOf(sl); if(m&&m.origin==='datos.json') avisos.push(`<b>${SRC_DEF[sl].label}</b> se está leyendo del respaldo <code>datos.json</code>: no hay un Excel válido en <code>data/</code>. Publique de nuevo desde Administración.`); if(m&&m.origin==='local') avisos.push(`<b>${SRC_DEF[sl].label}</b> viene de un archivo cargado en este navegador (borrador): el público aún no lo ve hasta que presione «Publicar datos».`); });
+  const pubTxt=PUBINFO?`Última publicación: <b>${fmtFecha(PUBINFO.version)}</b> · ${Object.keys(PUBINFO.files||{}).length} archivo(s).`:'No hay registro de publicación (data/publicado.json).';
   const cards=SLOTS.map(sl=>{ const d=SRC_DEF[sl], m=metaOf(sl), c=cfgOf(sl);
     const origen=!m?'—': m.origin==='local'?'Cargado manualmente en este navegador (borrador)': m.origin==='datos.json'?'Paquete datos.json (respaldo)':`Publicado en el sitio · ${m.origin}`;
     return `<div class="fx-card${focus===sl?' hl':''}" id="fx-${sl}">
@@ -2251,6 +2261,7 @@ function renderFuentes(focus){
       <td style="color:var(--muted)">${r.calc}</td></tr>`; }).join('');
   host.innerHTML=`
     <div class="sect-h"><span class="k">Fuentes de datos · una cifra, un archivo, un responsable</span><span class="ln"></span></div>
+    <div class="fx-sec" style="margin-bottom:14px"><p style="margin:0 0 ${avisos.length?8:0}px">${pubTxt} <span style="color:var(--muted2)">Prioridad: archivos cargados aquí → <code>data/</code> publicado → <code>datos.json</code> (solo si no hay <code>data/</code>).</span></p>${avisos.map(a=>`<p style="margin:6px 0 0;color:#FBBF24">⚠ ${a}</p>`).join('')}</div>
     <div class="fx-sec"><p><b style="color:var(--txt)">Cómo se mantiene limpio y actualizado.</b> Cada número del tablero sale de uno de estos cuatro archivos. El administrador reemplaza el archivo en <code>data/</code> (mismo nombre) y el tablero se actualiza solo; los archivos viejos no se mezclan porque <code>data/</code> siempre tiene prioridad sobre datos.json.
       Si una cifra no cuadra, use «Solicitar actualización» para pedir la versión vigente al responsable del archivo.</p>
       ${editorMode?'':'<p style="margin:0;color:var(--muted2)">La descarga de los Excel originales está disponible solo en modo administrador.</p>'}</div>
@@ -2459,6 +2470,10 @@ async function publishToGitHub(token,slots,msg,onStep){
   const commit=await ghApi(token,`${R}/git/commits/${head}`);
   const files=slots.map(sl=>({path:CANON_FILE[sl],b64:bufToB64(metaOf(sl).buf),enc:'base64'}));
   files.push({path:'datos.json',b64:buildDatosJson(),enc:'utf-8'});
+  // manifiesto con versión y huellas: permite comprobar que lo que se ve en vivo es lo último publicado
+  const version=new Date().toISOString(), man={version,files:{}};
+  for(const sl of SLOTS){ const m=metaOf(sl); if(m&&m.buf) man.files[sl]={path:CANON_FILE[sl],name:m.name,size:m.size,sha256:m.sha||await hashBuf(m.buf)}; }
+  files.push({path:'data/publicado.json',b64:JSON.stringify(man,null,1),enc:'utf-8'});
   const tree=[];
   for(let i=0;i<files.length;i++){ onStep(`Subiendo ${files[i].path} (${i+1}/${files.length})…`);
     const b=await ghApi(token,`${R}/git/blobs`,{method:'POST',body:JSON.stringify({content:files[i].b64,encoding:files[i].enc})});
@@ -2467,7 +2482,7 @@ async function publishToGitHub(token,slots,msg,onStep){
   const t=await ghApi(token,`${R}/git/trees`,{method:'POST',body:JSON.stringify({base_tree:commit.tree.sha,tree})});
   const c=await ghApi(token,`${R}/git/commits`,{method:'POST',body:JSON.stringify({message:msg,tree:t.sha,parents:[head]})});
   await ghApi(token,`${R}/git/refs/heads/${REPO.branch}`,{method:'PATCH',body:JSON.stringify({sha:c.sha})});
-  return `https://github.com/${REPO.owner}/${REPO.repo}/commit/${c.sha}`;
+  return {url:`https://github.com/${REPO.owner}/${REPO.repo}/commit/${c.sha}`,version};
 }
 function openPublishDialog(){
   const local=SLOTS.filter(sl=>{ const m=metaOf(sl); return m&&m.origin==='local'&&m.buf; });
@@ -2493,11 +2508,16 @@ function openPublishDialog(){
   $$('#pub-go').addEventListener('click',async()=>{
     const tok=$$('#pub-tok').value.trim(); if(!tok){ st.className='st err'; st.textContent='Escriba el token de GitHub.'; return; }
     const btn=$$('#pub-go'); btn.disabled=true; st.className='st'; st.textContent='Iniciando…';
-    try{ const url=await publishToGitHub(tok,local,$$('#pub-msg').value.trim()||'Actualización de datos',m=>{ st.textContent=m; });
+    try{ const res=await publishToGitHub(tok,local,$$('#pub-msg').value.trim()||'Actualización de datos',m=>{ st.textContent=m; }); const url=res.url;
       try{ if($$('#pub-rem').checked) sessionStorage.setItem('mides_gh',tok); else sessionStorage.removeItem('mides_gh'); }catch(e){}
       clearStorage(); updateClearBtn(); updatePublishBtn();
-      st.className='st ok'; st.innerHTML=`✔ Publicado. <a href="${url}" target="_blank" rel="noopener" style="color:inherit;text-decoration:underline">Ver el commit</a>. Cloudflare tardará 1 a 2 minutos; luego recargue el sitio (Ctrl+Shift+R).`;
+      st.className='st ok'; st.innerHTML=`✔ Publicado en GitHub. <a href="${url}" target="_blank" rel="noopener" style="color:inherit;text-decoration:underline">Ver el commit</a>.<br><span id="pub-wait">Esperando a que Cloudflare lo ponga en vivo…</span>`;
       btn.style.display='none'; $$('#pub-x').textContent='Cerrar';
+      let tries=0; const poll=async()=>{ tries++; const w=$$('#pub-wait'); if(!w) return;
+        try{ const r=await fetchFresh('data/publicado.json'); const j=r.ok?await r.json():null;
+          if(j&&j.version===res.version){ w.innerHTML='✔ <b>Ya está en vivo.</b> <button class="fx-btn pri" id="pub-reload" style="margin-left:8px">Recargar ahora</button>'; const rb=$$('#pub-reload'); if(rb) rb.addEventListener('click',()=>location.reload()); return; } }catch(e){}
+        if(tries<30) setTimeout(poll,8000); else w.textContent='Cloudflare aún no termina. Recargue el sitio en un momento (Ctrl+Shift+R).'; };
+      setTimeout(poll,6000);
     }catch(e){ btn.disabled=false; st.className='st err';
       st.textContent= e.status===401?'GitHub rechazó el token (401). Verifique que sea correcto y no haya caducado.': e.status===403||e.status===404?`GitHub negó el acceso (${e.status}). El token debe tener permiso «Contents: Read and write» sobre ${REPO.repo}.`: e.status===422?'GitHub rechazó el cambio (422): intente de nuevo; si persiste, otra persona modificó la rama en ese momento.':'No se pudo publicar: '+e.message; }
   });
