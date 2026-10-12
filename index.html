@@ -600,6 +600,30 @@ html[data-theme="light"] .q-card{background:#fff!important;border:1px solid var(
 .pub-box .row{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px;align-items:center;}
 .pub-box .st{font-size:12.5px;margin-top:12px;line-height:1.5;} .pub-box .st.err{color:#F87171;} .pub-box .st.ok{color:#34D399;}
 .pub-box details{margin-top:12px;font-size:12px;color:var(--muted);} .pub-box summary{cursor:pointer;color:var(--accent2);font-weight:600;}
+
+/* ===== Mapa: etiquetas legibles, insignias, leyenda y tooltip ===== */
+.georef{font:italic 500 1.5px 'Inter';fill:var(--muted2);letter-spacing:.35px;pointer-events:none;opacity:.8;}
+.deplabel{font-family:'Space Grotesk';font-weight:700;letter-spacing:.015em;text-anchor:middle;pointer-events:none;paint-order:stroke;stroke-width:.5px;stroke-linejoin:round;text-rendering:geometricPrecision;}
+.depval{font-family:'Inter';font-weight:600;text-anchor:middle;pointer-events:none;paint-order:stroke;stroke-width:.4px;stroke-linejoin:round;opacity:.92;}
+.dep{stroke:rgba(255,255,255,.55);stroke-width:.28;} html[data-theme="light"] .dep{stroke:#fff;stroke-width:.45;}
+#svgmap:hover .dep{opacity:.86;} #svgmap .dep:hover{opacity:1;stroke:#fff;stroke-width:.9;filter:drop-shadow(0 .5px 1.2px rgba(0,0,0,.45));}
+.badge{cursor:pointer;} .badge circle{stroke-width:.35;paint-order:stroke;} .badge:hover circle{stroke-width:.9;}
+.badgenum{font:700 1.65px 'Space Grotesk';text-anchor:middle;pointer-events:none;}
+.mkey-box{fill:rgba(8,14,24,.78);stroke:var(--line);stroke-width:.2;} html[data-theme="light"] .mkey-box{fill:rgba(255,255,255,.94);stroke:#C8C6C4;}
+.mkey-h{font:700 1.35px 'Inter';letter-spacing:.5px;fill:var(--muted);}
+.mkey-c{fill:var(--accent);} .mkey-n{font:700 1.5px 'Space Grotesk';fill:#fff;text-anchor:middle;pointer-events:none;}
+.mkey-t{font:600 1.9px 'Inter';fill:var(--txt);} .mkey-v{font:600 1.7px 'Space Grotesk';fill:var(--muted);}
+.mkey-row{cursor:pointer;} .mkey-row:hover .mkey-t{fill:var(--accent2);}
+.mls-t{font:600 11px 'Inter';color:var(--txt);margin-bottom:6px;} .mls-bar{height:9px;border-radius:99px;width:210px;max-width:100%;}
+.mls-v{display:flex;justify-content:space-between;gap:12px;font-size:10.5px;color:var(--muted);margin:4px 0 8px;font-variant-numeric:tabular-nums;}
+#maptip{padding:11px 13px;min-width:210px;border-radius:12px;box-shadow:0 14px 34px rgba(0,0,0,.45);}
+.tt-h{font:700 13px 'Space Grotesk';color:var(--txt);margin-bottom:6px;letter-spacing:.02em;} .tt-r{display:flex;justify-content:space-between;gap:16px;font-size:12px;padding:2px 0;color:var(--muted);} .tt-r b{color:var(--txt);font-variant-numeric:tabular-nums;}
+.tt-s{font-size:10.5px;color:var(--muted2);margin:-1px 0 3px;text-align:right;} .tt-c{margin-top:7px;padding-top:6px;border-top:1px solid var(--line);font-size:10.5px;color:var(--accent2);}
+html[data-theme="light"] #maptip{background:#fff;border-color:#C8C6C4;} html[data-theme="light"] .tt-h{color:#252423;}
+.muni{align-items:center;gap:10px;padding:9px 10px;} .muni .rk{flex:0 0 22px;height:22px;border-radius:7px;background:var(--inset);color:var(--muted);font:700 11px 'Space Grotesk';display:grid;place-items:center;}
+.muni .nm{flex:1;font-weight:600;font-size:12.5px;} .muni .mb{display:block;height:5px;border-radius:99px;background:rgba(148,163,184,.16);margin-top:6px;overflow:hidden;} .muni .mb u{display:block;height:100%;border-radius:99px;background:var(--accent);}
+.muni .mt{font-size:11px;line-height:1.45;} .muni .mt b{color:var(--txt);font-variant-numeric:tabular-nums;}
+html[data-theme="light"] .muni .rk{background:#EDEBE9;} html[data-theme="light"] .muni .mb{background:#EDEBE9;}
 </style>
 </head>
 <body>
@@ -741,8 +765,7 @@ html[data-theme="light"] .q-card{background:#fff!important;border:1px solid var(
         <svg id="svgmap" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet"></svg>
         <div id="maptip"></div>
         <div class="mlegend">
-          <div class="row"><span class="sw" style="background:#1d4ed8"></span> Mayor ejecución</div>
-          <div class="row"><span class="sw" style="background:#1e3a5f"></span> Menor ejecución</div>
+          <div id="mleg-scale"></div>
           <div class="row"><span class="sw" style="background:#242c39;border:1px dashed #79839a"></span> Territorio en reclamo</div>
           <div class="row" style="margin-top:5px"><svg class="licon" viewBox="0 0 24 24"><use href="#ic-fijo" width="24" height="24"/></svg> Comedor fijo &nbsp;<svg class="licon mov" viewBox="0 0 24 24"><use href="#ic-movil" width="24" height="24"/></svg> Comedor móvil</div>
         </div>
@@ -836,25 +859,36 @@ function parseCuotaSemana(wb){
   const totFin=nums.length>=10?num(nums[9]):semanas.reduce((a,s)=>a+s.fin,0);
   const servRac=semanas.filter(s=>s.tipo==='servida').reduce((a,s)=>a+s.rac,0);
   const servFin=semanas.filter(s=>s.tipo==='servida').reduce((a,s)=>a+s.fin,0);
-  return {semanas,servRac,servFin,totRac,totFin,precioMedio:servRac?servFin/servRac:0,sheet:sn};
+  const nota1=(labels||[]).find(t=>norm(t).includes('PENDIENTE'));
+  return {semanas,servRac,servFin,totRac,totFin,precioMedio:servRac?servFin/servRac:0,sheet:sn,nota1:nota1?String(nota1).replace(/\s*\(RACIONES SERVIDAS\)\s*/i,'').trim():null};
 }
 
 /* ---------- PARSER 2: Cuota Quincena → gráficas por comedor ---------- */
 function parseCuotaQuincena(wb){
-  const sn=findSheet(wb,'EJECUCION QUINCENA','QUINCENA'); if(!sn) return null;
-  const R=rowsOf(wb,sn);
-  let h=-1;
-  for(let i=0;i<Math.min(40,R.length);i++){ const nn=R[i].map(norm);
-    if(nn.includes('DEPARTAMENTO')&&nn.some(x=>x.includes('COMEDOR'))){h=i;break;} }
-  if(h<0) return null;
+  // La hoja de comedores se reconoce por su ENCABEZADO (Departamento + Comedor), no por su nombre:
+  // la plantilla cambia de mes a mes (QUINCENA JUNIO, SEPTIEMBRE, …).
+  let sn=null,R=null,h=-1;
+  const cands=wb.SheetNames.slice().sort((a,b)=>(norm(b).includes('QUINCENA')?1:0)-(norm(a).includes('QUINCENA')?1:0));
+  for(const nm of cands){ const rr=rowsOf(wb,nm); if(rr.length<20) continue;
+    for(let i=0;i<Math.min(40,rr.length);i++){ const nn=rr[i].map(norm);
+      if(nn.includes('DEPARTAMENTO')&&nn.some(x=>x.includes('COMEDOR'))&&nn.some(x=>x.includes('MODALIDAD'))){ sn=nm; R=rr; h=i; break; } }
+    if(sn) break; }
+  if(!sn) return null;
   const hd=R[h].map(norm);
+  // fila de grupos (encabezado superior) con relleno hacia la derecha: «TOTAL RACIONES SERVIDAS», «EJECUCIÓN FINANCIERA GLOBAL», …
+  const gr=[]; let last=''; const up=(R[h-1]||[]).map(norm);
+  for(let j=0;j<hd.length;j++){ if(up[j]) last=up[j]; gr[j]=last; }
   const cDep=hd.indexOf('DEPARTAMENTO');
   const cCom=hd.findIndex(x=>x.includes('COMEDOR'));
   const cMod=hd.findIndex(x=>x==='MODALIDAD');
   const cContr=hd.findIndex(x=>x.includes('CONTRATACION'));
-  const cTotEj=hd.findIndex(x=>x.includes('TOTAL EJECUCION'));
-  const cTotRac=hd.findIndex(x=>x.includes('TOTAL RACIONES'));
-  // 1a-2da semana desayuno/almuerzo servidos: first RACIONES SERVIDAS block after LOTE
+  let cTotEj=hd.findIndex(x=>x.includes('TOTAL EJECUCION'));
+  let cTotRac=hd.findIndex(x=>x.includes('TOTAL RACIONES'));
+  if(cTotEj<0)  cTotEj =hd.findIndex((x,j)=>x==='TOTAL'&&gr[j].includes('EJECUCION FINANCIERA GLOBAL'));
+  if(cTotRac<0) cTotRac=hd.findIndex((x,j)=>x==='TOTAL'&&gr[j].includes('TOTAL RACIONES SERVIDAS'));
+  let cDes=hd.findIndex((x,j)=>x==='DESAYUNO'&&gr[j].includes('TOTAL RACIONES SERVIDAS'));
+  let cAlm=hd.findIndex((x,j)=>x==='ALMUERZO'&&gr[j].includes('TOTAL RACIONES SERVIDAS'));
+  if(cDes<0||cAlm<0){ cDes=10; cAlm=11; }   // plantilla anterior: columnas fijas
   const comedores=[]; let mFijo=0,mMovil=0; const contr={}; let totDes=0,totAlm=0;
   for(let i=h+1;i<R.length;i++){ const r=R[i]; const dep=r[cDep];
     if(!dep||!String(dep).trim()||norm(dep).startsWith('TOTAL')) continue;
@@ -863,8 +897,7 @@ function parseCuotaQuincena(wb){
     const c=(cContr>=0&&r[cContr])?String(r[cContr]).trim().toUpperCase():'N/D'; contr[c]=(contr[c]||0)+1;
     comedores.push({com:String(r[cCom]||'').trim(),dep:canonDep(dep),mod,
                     ejec:cTotEj>=0?num(r[cTotEj]):0, rac:cTotRac>=0?num(r[cTotRac]):0});
-    // desayuno/almuerzo servidos viven en las dos columnas siguientes al bloque LOTE (col 10/11 en el template)
-    totDes+=num(r[10]); totAlm+=num(r[11]);
+    totDes+=num(r[cDes]); totAlm+=num(r[cAlm]);
   }
   return {comedores,mFijo,mMovil,contr,totDes,totAlm,sheet:sn};
 }
@@ -1003,7 +1036,7 @@ let mComActivos={};
 function comedoresActivosPorDep(){
   const m={};
   if(state.quincena){ const seen={};
-    state.quincena.comedores.forEach(c=>{ const d=canonDep(c.dep), key=d+'|'+norm(c.com); if(seen[key])return; seen[key]=1;
+    state.quincena.comedores.forEach(c=>{ const d=canonDep(c.dep), key=d+'|'+norm(c.com)+'|'+norm(c.mod); if(seen[key])return; seen[key]=1;   // mismo nombre con distinta modalidad = comedores distintos
       const o=m[d]||(m[d]={total:0,fijo:0,movil:0}); o.total++; if(isMovil(c.mod))o.movil++; else o.fijo++; });
   }
   return m;
@@ -1026,6 +1059,8 @@ function sniffType(wb){
   if(sheetHasHeader(wb,'PROVEEDOR','PROYECTADAS')) return 'pagos';       // raciones semestrales (pagos)
   if(sheetHasHeader(wb,'SEXO','EDAD')) return 'clasif';                 // clasificador (checar antes que DPS)
   if(findSheet(wb,'POR SEMANA','QUINCENA','ACUMULADO SEMANAL','DESGLOCE SEMANAL')) return 'semana';
+  if(sheetHasHeader(wb,'DEPARTAMENTO','COMEDOR SOCIAL','MODALIDAD')) return 'semana';   // hoja mensual de comedores (p. ej. SEPTIEMBRE)
+  if(sheetHasHeader(wb,'TOTAL GLOBAL','SEMANA')) return 'semana';
   if(sheetHasHeader(wb,'DEPARTAMENTO','MUNICIPIO','UNIDAD')) return 'dps';
   return null;
 }
@@ -1323,7 +1358,7 @@ function emptyBlock(msg){
    ============================================================ */
 const SVGNS="http://www.w3.org/2000/svg";
 const M_BBOX={minLon:-92.5,maxLon:-87.55,minLat:13.5,maxLat:18.6};
-const M_VB=100, M_PAD=4, M_COSLAT=Math.cos(((M_BBOX.minLat+M_BBOX.maxLat)/2)*Math.PI/180);
+const M_VB=100, M_VBOX='-18 0 136 100', M_PAD=4, M_COSLAT=Math.cos(((M_BBOX.minLat+M_BBOX.maxLat)/2)*Math.PI/180);
 function mProject(lon,lat){
   const w=(M_BBOX.maxLon-M_BBOX.minLon)*M_COSLAT, h=(M_BBOX.maxLat-M_BBOX.minLat), span=Math.max(w,h);
   const x=M_PAD+(((lon-M_BBOX.minLon)*M_COSLAT)/span)*(M_VB-2*M_PAD);
@@ -1334,9 +1369,13 @@ const mapEl={ svg:null, tip:null, side:null, back:null, title:null };
 let mapDepTot={}, mapComedores=[], mapMaxRac=1, mapCurDep=null, mapLevel='pais';
 const isMovil=m=>norm(m).includes('MOVIL');
 
+function mRamp(f){ const L=document.documentElement.getAttribute('data-theme')==='light';
+  const a=L?[205,225,246]:[30,58,95], b=L?[10,84,160]:[37,99,235]; f=Math.max(0,Math.min(1,f));
+  return a.map((v,k)=>Math.round(v+(b[k]-v)*f)); }
 function mColorDep(dep){ const L=document.documentElement.getAttribute('data-theme')==='light'; const t=mapDepTot[dep]; if(!t||!t.rac) return L?"#EDEBE9":"#16263d";
-  const f=t.rac/mapMaxRac, a=L?[198,222,247]:[30,58,95], b=L?[15,108,189]:[29,78,216], c=a.map((v,i)=>Math.round(v+(b[i]-v)*f));
-  return `rgb(${c[0]},${c[1]},${c[2]})`; }
+  const c=mRamp(t.rac/mapMaxRac); return `rgb(${c[0]},${c[1]},${c[2]})`; }
+function mTextOn(rgbStr){ const m=(rgbStr||'').match(/\d+/g); if(!m||m.length<3) return {fill:'#fff',halo:'rgba(8,14,24,.7)'};
+  const lum=(0.299*m[0]+0.587*m[1]+0.114*m[2])/255; return lum>0.62?{fill:'#0F2238',halo:'rgba(255,255,255,.75)'}:{fill:'#FFFFFF',halo:'rgba(8,14,24,.65)'}; }
 function mPath(polys){ let d=""; polys.forEach(ring=>{ ring.forEach((c,i)=>{ const [x,y]=mProject(c[0],c[1]); d+=(i===0?"M":"L")+x.toFixed(2)+" "+y.toFixed(2)+" "; }); d+="Z "; }); return d; }
 function mBounds(polys){ let a=1e9,b=1e9,c=-1e9,d=-1e9; polys.forEach(r=>r.forEach(p=>{ const [x,y]=mProject(p[0],p[1]); a=Math.min(a,x);b=Math.min(b,y);c=Math.max(c,x);d=Math.max(d,y); })); return {minX:a,minY:b,maxX:c,maxY:d}; }
 function mAnim(from,to,dur,done){ const f=from.split(/\s+/).map(Number),t=to.split(/\s+/).map(Number),t0=performance.now();
@@ -1358,31 +1397,58 @@ function mBuildData(){
   mComActivos=comedoresActivosPorDep();
 }
 
+const M_REFS=[['MÉXICO',-92.45,16.7,'end'],['HONDURAS',-88.75,14.95,'start'],['EL SALVADOR',-89.5,13.78,'start'],['OCÉANO PACÍFICO',-90.95,13.42,'middle'],['MAR CARIBE',-87.75,17.5,'start']];
+function mTipDep(e,name){ const t=mapDepTot[name]||{rac:0,mon:0}; const ca=comActivosDe(name); const tot=Object.values(mapDepTot).reduce((a,v)=>a+v.rac,0)||1;
+  mTip(e,`<div class="tt-h">${name}</div>
+    <div class="tt-r"><span>Comedores activos</span><b>${ca.total}</b></div>
+    ${ca.total?`<div class="tt-s">${ca.fijo} fijos · ${ca.movil} móviles</div>`:''}
+    <div class="tt-r"><span>Raciones servidas</span><b>${fmtN(t.rac)}</b></div>
+    <div class="tt-r"><span>Monto ejecutado</span><b>${fmtQk(t.mon)}</b></div>
+    <div class="tt-r"><span>Del total nacional</span><b>${(t.rac/tot*100).toFixed(1)}%</b></div>
+    <div class="tt-c">Clic para ver sus comedores</div>`); }
 function mRenderNacional(){
   mapCurDep=null; mapLevel='pais';
-  mapEl.svg.setAttribute('viewBox',`0 0 ${M_VB} ${M_VB}`); mapEl.svg.innerHTML="";
+  mapEl.svg.setAttribute('viewBox',M_VBOX); mapEl.svg.innerHTML="";
   mapEl.back.style.display="none"; mapEl.title.textContent="República de Guatemala";
+  const mk=(tag,attrs,txt)=>{ const n=document.createElementNS(SVGNS,tag); for(const k in attrs) n.setAttribute(k,attrs[k]); if(txt!=null) n.textContent=txt; return n; };
+  // orientación geográfica (países vecinos y mares)
+  M_REFS.forEach(([t,lon,lat,anc])=>{ const [x,y]=mProject(lon,lat); mapEl.svg.appendChild(mk('text',{x:x.toFixed(1),y:y.toFixed(1),class:'georef','text-anchor':anc},t)); });
+  const bind=(el,ft)=>{ el.addEventListener("click",()=>mSeleccionarDep(ft.name)); el.addEventListener("mousemove",e=>mTipDep(e,ft.name)); el.addEventListener("mouseleave",mHideTip); };
+  const labels=[], badges=[];
   GEO_GT.forEach(ft=>{
-    const path=document.createElementNS(SVGNS,"path"); path.setAttribute("d",mPath(ft.polys));
-    if(ft.tipo==="departamento"){
-      path.setAttribute("class","dep"); path.setAttribute("fill",mColorDep(ft.name));
-      path.addEventListener("click",()=>mSeleccionarDep(ft.name));
-      path.addEventListener("mousemove",e=>{ const t=mapDepTot[ft.name]||{rac:0,mon:0}; const ca=comActivosDe(ft.name);
-        mTip(e,`<b>${ft.name}</b><br>Comedores activos: ${ca.total}${ca.total?` <span style="color:#94A3B8">(${ca.fijo} fijos · ${ca.movil} móviles)</span>`:''}<br>Raciones: ${fmtN(t.rac)}<br>Monto: ${fmtQ(t.mon)}<br><span style="color:#94A3B8">Clic para ver detalle</span>`); });
-      path.addEventListener("mouseleave",mHideTip);
-    } else { path.setAttribute("class","reclamo"); }
+    const path=mk('path',{d:mPath(ft.polys)});
+    if(ft.tipo==="departamento"){ path.setAttribute("class","dep"); path.setAttribute("fill",mColorDep(ft.name)); bind(path,ft); }
+    else { path.setAttribute("class","reclamo"); }
     mapEl.svg.appendChild(path);
-    if(ft.tipo==="departamento"){
-      const [lx,ly]=mProject(ft.centro[0],ft.centro[1]); const lbl=document.createElementNS(SVGNS,"text");
-      lbl.setAttribute("x",lx); lbl.setAttribute("y",ly); lbl.setAttribute("class","deplabel");
-      // el rótulo se ajusta al ancho del departamento; si no cabe se abrevia (el nombre completo sale en el tooltip)
-      const bb=mBounds(ft.polys), w=(bb.maxX-bb.minX)*0.92; let fs=2.35, txt=ft.name;
-      if(txt.length*fs*0.64>w){ fs=Math.max(1.5,w/(txt.length*0.64)); const nmax=Math.floor(w/(fs*0.64)); txt= nmax>=3 ? txt.slice(0,Math.max(3,nmax-1))+'.' : ''; }
-      lbl.style.fontSize=fs.toFixed(2)+'px'; lbl.textContent=txt; mapEl.svg.appendChild(lbl);
-    }
+    if(ft.tipo!=="departamento") return;
+    const [lx,ly]=mProject(ft.centro[0],ft.centro[1]); const bb=mBounds(ft.polys), w=(bb.maxX-bb.minX)*0.94;
+    const tc=mTextOn(mColorDep(ft.name)), name=ft.name, fitFs=w/(name.length*0.62), fs=Math.min(2.4,fitFs);
+    if(fs>=1.7){ labels.push({ft,lx,ly,fs,tc}); } else { badges.push({ft,lx,ly,tc}); }
   });
-  mSidebarNacional();
+  labels.forEach(({ft,lx,ly,fs,tc})=>{ const t=mapDepTot[ft.name]; const big=fs>=2.0&&t&&t.rac;
+    const l=mk('text',{x:lx.toFixed(2),y:(ly+(big?-0.25:0.6)).toFixed(2),class:'deplabel'},ft.name);
+    l.style.fontSize=fs.toFixed(2)+'px'; l.style.fill=tc.fill; l.style.stroke=tc.halo; mapEl.svg.appendChild(l);
+    if(big){ const v=mk('text',{x:lx.toFixed(2),y:(ly+fs*0.82).toFixed(2),class:'depval'},fmtK(t.rac)); v.style.fontSize=(fs*0.74).toFixed(2)+'px'; v.style.fill=tc.fill; v.style.stroke=tc.halo; mapEl.svg.appendChild(v); } });
+  // departamentos pequeños: insignia numerada + lista de referencias dentro del mapa
+  badges.sort((a,b)=>((mapDepTot[b.ft.name]||{}).rac||0)-((mapDepTot[a.ft.name]||{}).rac||0));
+  badges.forEach((b,i)=>{ const g=mk('g',{class:'badge'}); const c=mk('circle',{cx:b.lx.toFixed(2),cy:b.ly.toFixed(2),r:'1.75'}); c.style.fill=b.tc.fill; c.style.stroke=b.tc.halo;
+    const n=mk('text',{x:b.lx.toFixed(2),y:(b.ly+0.62).toFixed(2),class:'badgenum'},String(i+1)); n.style.fill=b.tc.fill==='#FFFFFF'?'#0F2238':'#FFFFFF';
+    g.appendChild(c); g.appendChild(n); bind(g,b.ft); mapEl.svg.appendChild(g); });
+  if(badges.length){ const x0=89, y0=47, rowH=3.1, wBox=28, hBox=badges.length*rowH+7.5;
+    const box=mk('rect',{x:x0-2,y:y0-2.5,width:wBox,height:hBox,rx:1.6,class:'mkey-box'}); mapEl.svg.appendChild(box);
+    mapEl.svg.appendChild(mk('text',{x:x0,y:y0+1.3,class:'mkey-h'},'DEPTOS. PEQUEÑOS'));
+    badges.forEach((b,i)=>{ const y=y0+6+i*rowH; const row=mk('g',{class:'mkey-row'});
+      row.appendChild(mk('circle',{cx:x0+1.6,cy:y-0.7,r:1.5,class:'mkey-c'}));
+      row.appendChild(mk('text',{x:x0+1.6,y:y-0.12,class:'mkey-n'},String(i+1)));
+      row.appendChild(mk('text',{x:x0+4.4,y:y,class:'mkey-t'},b.ft.name.charAt(0)+b.ft.name.slice(1).toLowerCase()));
+      row.appendChild(mk('text',{x:x0+wBox-3.2,y:y,class:'mkey-v','text-anchor':'end'},fmtK((mapDepTot[b.ft.name]||{}).rac||0)));
+      bind(row,b.ft); mapEl.svg.appendChild(row); }); }
+  mLegendScale(); mSidebarNacional();
 }
+function mLegendScale(){ const el=$('#mleg-scale'); if(!el) return; const v=Object.values(mapDepTot).map(d=>d.rac).filter(x=>x>0);
+  if(!v.length){ el.innerHTML=''; return; } const mn=Math.min(...v), mx=Math.max(...v);
+  const stops=[0,.25,.5,.75,1].map(f=>{ const c=mRamp(f); return `rgb(${c[0]},${c[1]},${c[2]})`; }).join(',');
+  el.innerHTML=`<div class="mls-t">Raciones servidas por departamento · 2026</div><div class="mls-bar" style="background:linear-gradient(90deg,${stops})"></div><div class="mls-v"><span>${fmtK(mn)} (menos)</span><span>${fmtK(mx)} (más)</span></div>`; }
 function mSeleccionarDep(dep){
   mapCurDep=dep; mapLevel='departamento';
   const ft=GEO_GT.find(f=>f.name===dep); if(!ft) return;
@@ -1393,7 +1459,7 @@ function mSeleccionarDep(dep){
   GEO_GT.forEach(f=>{ const p=document.createElementNS(SVGNS,"path"); p.setAttribute("d",mPath(f.polys));
     if(f.name===dep){ p.setAttribute("fill",mColorDep(dep)); p.setAttribute("stroke","#BFDBFE"); p.setAttribute("stroke-width","0.5"); }
     else if(f.tipo==="reclamo"){ p.setAttribute("class","reclamo"); p.setAttribute("opacity","0.5"); }
-    else { p.setAttribute("fill","#0e1a2c"); p.setAttribute("stroke","#1e3a5f"); p.setAttribute("stroke-width","0.25"); p.setAttribute("opacity","0.5"); }
+    else { const Lt=document.documentElement.getAttribute('data-theme')==='light'; p.setAttribute("fill",Lt?"#E1DFDD":"#0e1a2c"); p.setAttribute("stroke",Lt?"#C8C6C4":"#1e3a5f"); p.setAttribute("stroke-width","0.25"); p.setAttribute("opacity","0.6"); }
     mapEl.svg.appendChild(p); });
   mAnim(mapEl.svg.getAttribute('viewBox'), `${vbx} ${vby} ${sz} ${sz}`, 520, ()=>mMarcadores(dep));
   mapEl.back.style.display="block"; mapEl.title.textContent=dep; mSidebarDepartamento(dep);
@@ -1442,8 +1508,9 @@ function mSidebarNacional(){
   const rank=Object.entries(mapDepTot).sort((a,b)=>b[1].rac-a[1].rac);
   const totR=Object.values(mapDepTot).reduce((a,v)=>a+v.rac,0), totM=Object.values(mapDepTot).reduce((a,v)=>a+v.mon,0);
   const totC=Object.values(mComActivos).reduce((a,v)=>a+v.total,0);
-  const rows=rank.map(([d,t])=>{ const ca=comActivosDe(d);
-    return `<div class="muni" onclick="mSeleccionarDep('${d.replace(/'/g,"\\'")}')"><span class="nm">${d}</span><span class="mt">${ca.total} comedores<br>${fmtN(t.rac)} rac · ${fmtQk(t.mon)}</span></div>`; }).join("");
+  const mxr=rank.length?rank[0][1].rac:1;
+  const rows=rank.map(([d,t],i)=>{ const ca=comActivosDe(d);
+    return `<div class="muni" onclick="mSeleccionarDep('${d.replace(/'/g,"\\'")}')"><span class="rk">${i+1}</span><span class="nm">${d}<i class="mb"><u style="width:${Math.max(2,t.rac/mxr*100).toFixed(0)}%"></u></i></span><span class="mt"><b>${fmtN(t.rac)}</b> raciones<br>${ca.total} comedores · ${fmtQk(t.mon)}</span></div>`; }).join("");
   mapEl.side.innerHTML = rank.length? `
     <h2>Resumen nacional 2026</h2>
     ${totC?`<div class="stat"><div class="k">Comedores activos</div><div class="v">${totC}</div></div>`:''}
@@ -1586,7 +1653,7 @@ function renderCharts(){
   h+=`<div class="sect-h"><span class="k">Ejecución semanal · Cuota por Semana</span><span class="ln"></span></div>`;
   if(p1){
     h+=`<div class="grid">
-      <div class="card"><h3>Raciones por semana <span class="src">Servidas vs proyección</span></h3><div class="csub">Azul = semana servida · naranja = proyectada.</div><div class="chartbox"><canvas id="c_sem_rac"></canvas></div>${insight(`Servidas <b>${fmtN(p1.servRac)}</b> de <b>${fmtN(p1.totRac)}</b> proyectadas (<b>${(p1.totRac?p1.servRac/p1.totRac*100:0).toFixed(1)}%</b>).`)}</div>
+      <div class="card"><h3>Raciones por semana <span class="src">Servidas vs proyección</span></h3><div class="csub">Azul = semana servida · naranja = proyectada.</div><div class="chartbox"><canvas id="c_sem_rac"></canvas></div>${insight(`Servidas <b>${fmtN(p1.servRac)}</b> de <b>${fmtN(p1.totRac)}</b> proyectadas (<b>${(p1.totRac?p1.servRac/p1.totRac*100:0).toFixed(1)}%</b>).${p1.nota1?` <span style="color:var(--muted)">Semana 1: ${p1.nota1}.</span>`:''}`)}</div>
       <div class="card"><h3>Monto semanal <span class="src">Quetzales</span></h3><div class="csub">Parte de cero: la altura de la columna es proporcional al monto.</div><div class="chartbox"><canvas id="c_sem_fin"></canvas></div>${insight(`Costo medio <b>Q ${p1.precioMedio.toFixed(2)}</b> por ración servida · total ejecutado <b>${fmtQk(p1.servFin)}</b>.`)}</div>
     </div>`;
   } else { h+=emptyBlock('Cargue <b>Cuota por Semana</b> para ver la ejecución semanal.'); }
@@ -1953,7 +2020,7 @@ function init(){
   applyChartTheme();
   mapEl.svg=$('#svgmap'); mapEl.tip=$('#maptip'); mapEl.side=$('#mapside'); mapEl.back=$('#mapback'); mapEl.title=$('#maptitle');
   mapEl.back.addEventListener('click',()=>{ if(mapLevel==='comedor'&&mapCurDep){ mSeleccionarDep(mapCurDep); }
-    else { mAnim(mapEl.svg.getAttribute('viewBox'),`0 0 ${M_VB} ${M_VB}`,420,mRenderNacional); } });
+    else { mAnim(mapEl.svg.getAttribute('viewBox'),M_VBOX,420,mRenderNacional); } });
   wireDrop('semana'); wireDrop('dps'); wireDrop('clasif'); wireDrop('pagos');
   const ft=$('#feed-toggle');
   if(ft) ft.addEventListener('click',()=>{ const f=$('#feed'); const c=f.classList.toggle('collapsed');
@@ -2010,9 +2077,16 @@ async function loadFuentesCfg(){ try{ const r=await fetch('data/fuentes.json',{c
 async function hashBuf(buf){ try{ if(!buf||!crypto||!crypto.subtle) return null;
   const h=await crypto.subtle.digest('SHA-256',buf); return Array.from(new Uint8Array(h)).map(b=>b.toString(16).padStart(2,'0')).join(''); }catch(e){ return null; } }
 function detectMes(wb,names){
-  for(const nm of names){ if(!nm) continue; const R=rowsOf(wb,nm).slice(0,8);
-    for(const r of R) for(const c of r){ if(typeof c!=='string') continue; const t=norm(c); const i=MESES_FULL.findIndex(m=>t.includes(m));
-      if(i>=0){ const y=(t.match(/20\d\d/)||[])[0]; return {idx:i,anio:y?+y:null,texto:c.trim()}; } } }
+  const mi=t=>MESES_FULL.findIndex(m=>norm(t).includes(m));
+  // 1) nombre de hoja con el mes (SEPTIEMBRE, QUINCENA JUNIO)
+  for(const nm of wb.SheetNames.concat(names||[])){ if(!nm) continue; const k=mi(nm); if(k>=0) return {idx:k,anio:null,texto:String(nm).trim()}; }
+  // 2) celda de fecha en las primeras filas
+  for(const nm of (names||[])){ if(!nm) continue; const ws=wb.Sheets[nm]; if(!ws) continue;
+    const R=XLSX.utils.sheet_to_json(ws,{header:1,raw:false,defval:null,dateNF:'yyyy-mm-dd'}).slice(0,8);
+    for(const r of R) for(const c of r){ const m=typeof c==='string'&&c.match(/^(20\d\d)-(\d\d)-\d\d$/); if(m) return {idx:+m[2]-1,anio:+m[1],texto:MESES_FULL[+m[2]-1].toLowerCase()+' '+m[1]}; } }
+  // 3) texto con el mes en las primeras filas
+  for(const nm of (names||[])){ if(!nm) continue; const R=rowsOf(wb,nm).slice(0,8);
+    for(const r of R) for(const c of r){ if(typeof c!=='string') continue; const k=mi(c); if(k>=0){ const y=(norm(c).match(/20\d\d/)||[])[0]; return {idx:k,anio:y?+y:null,texto:c.trim()}; } } }
   return null;
 }
 function registerSource(slot,wb,name,info){
@@ -2048,11 +2122,13 @@ function buildChecks(){
   const mSem=metaOf('semana'); const mes=mSem&&mSem.mes;
   if(d){
     const last=d.fisMes.reduce((a,v,i)=>v>0?i:a,-1);
-    if(mes && s){
+    if(mes && s && !(d.fisMes[mes.idx]>0)){
+      add('info',`Ejecución DPS aún no incluye ${MESES_FULL[mes.idx].toLowerCase()}`,`Cuota por Semana corresponde a ${MESES_FULL[mes.idx].toLowerCase()} (${fmtN(s.totRac)} raciones) y Ejecución DPS llega hasta ${MESES_FULL[last].toLowerCase()}. No se puede comparar el mes hasta que DPS lo cierre.`);
+    } else if(mes && s){
       const dv=d.fisMes[mes.idx]||0, diff=s.totRac-dv, pct=dv?Math.abs(diff)/dv*100:0;
       add(pct<=1?'ok':'warn',`Raciones de ${MESES_FULL[mes.idx].toLowerCase()}: Cuota por Semana vs. Ejecución DPS`,
         `Cuota: ${fmtN(s.totRac)} · DPS: ${fmtN(dv)} · diferencia ${diff>=0?'+':''}${fmtN(diff)} (${pct.toFixed(2)}%). ${pct<=1?'Coinciden dentro de 1%.':'Revisar con el responsable de cada archivo.'}`);
-      if(last>mes.idx) add('info','Los archivos no cubren el mismo corte',`Cuota por Semana corresponde a ${MESES_FULL[mes.idx].toLowerCase()}; Ejecución DPS llega hasta ${MESES_FULL[last].toLowerCase()}. Los velocímetros «del mes» y los «acumulados» no son del mismo mes.`);
+      if(last>mes.idx&&d.fisMes[mes.idx]>0) add('info','Los archivos no cubren el mismo corte',`Cuota por Semana corresponde a ${MESES_FULL[mes.idx].toLowerCase()}; Ejecución DPS llega hasta ${MESES_FULL[last].toLowerCase()}. Los velocímetros «del mes» y los «acumulados» no son del mismo mes.`);
     }
     const sinFin=d.fisMes.map((v,i)=>v>0&&!(d.finMes[i]>0)?MESES_FULL[i].toLowerCase():null).filter(Boolean);
     if(sinFin.length) add('warn','Meses con raciones pero sin monto en Ejecución DPS',`${sinFin.join(', ')}: la ejecución financiera aparece en Q0. El monto acumulado (${fmtQ(d.totFin)}) podría estar subestimado.`);
