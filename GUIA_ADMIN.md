@@ -19,7 +19,7 @@ Cada gráfica tiene un chip `ⓘ archivo.xlsx` (lleva a esa ficha) y un botón `
 5. Meta anual oficial: `data/config.json` con `{"projRac": 9219150, "projFin": 0}` (ver advertencia en Conciliación).
 
 ## Modo administrador
-`https://<sitio>/admin/` (o `/?editor=1`) habilita: descarga del Excel original, edición de proyección, publicar datos.
+Entre por `https://<sitio>/admin/`. Esa ruta activa el modo administrador (insignia amarilla «Administrador», clic para salir) y habilita: pestaña **Fuentes y trazabilidad**, descarga del Excel original, edición de proyección y publicar datos. Para el público la pestaña de fuentes no existe. `?editor=1` ya no funciona.
 
 ## Resumen ejecutivo
 Primera pestaña: hallazgos generados con los datos cargados (cada uno cita archivo y hoja), avance contra el ritmo esperado y tabla por departamento. La meta anual usa, en este orden: `data/config.json` → meta vigente de la hoja INTEGRADO → total del mes × 12 (el origen se muestra en pantalla).
@@ -27,7 +27,7 @@ Primera pestaña: hallazgos generados con los datos cargados (cada uno cita arch
 ## Seguridad real (Cloudflare Zero Trust → Access)
 Automatizado: `scripts/cloudflare-access.sh` (requiere `CLOUDFLARE_API_TOKEN` y `ADMIN_EMAILS` en el entorno; no guarda secretos).
 
-`?editor=1` **no es seguridad**, solo oculta controles. Además, todo lo que está en `data/` es público por URL.
+El modo administrador solo oculta/mostrar controles en el navegador; **la seguridad real la da Cloudflare Access sobre `/admin*`**. Además, todo lo que está en `data/` es público por URL.
 Para que solo el admin vea/descargue los originales:
 1. Cloudflare Zero Trust → Access → Applications → *Self-hosted*.
 2. Dominio del sitio, rutas `/admin*` y `/data/*`, política *Allow* solo para correos del admin.
