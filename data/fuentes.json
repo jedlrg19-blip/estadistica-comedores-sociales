@@ -1,0 +1,6 @@
+{
+  "semana": { "responsable": "Por asignar", "correo": "", "area": "Subdirección de Comedores", "frecuencia": "Mensual / quincenal", "nota": "" },
+  "dps":    { "responsable": "Por asignar", "correo": "", "area": "Dirección de Prevención Social", "frecuencia": "Mensual (cierre de mes)", "nota": "" },
+  "clasif": { "responsable": "Por asignar", "correo": "", "area": "Subdirección de Comedores", "frecuencia": "Mensual", "nota": "" },
+  "pagos":  { "responsable": "Por asignar", "correo": "", "area": "Por asignar", "frecuencia": "Mensual", "nota": "" }
+}
