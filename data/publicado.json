@@ -1,0 +1,29 @@
+{
+ "version": "2026-10-12T17:45:37.000Z",
+ "files": {
+  "semana": {
+   "path": "data/cuota.xlsx",
+   "name": "cuota.xlsx",
+   "size": 229923,
+   "sha256": "729a547710f69bcbda6f07e82601b843ab34e6c17ea2e799442528985c884f92"
+  },
+  "dps": {
+   "path": "data/dps.xlsx",
+   "name": "dps.xlsx",
+   "size": 783964,
+   "sha256": "7427872153d5ad230d18178672f42670dbdc463cb95b273e452007a21bdb1cfe"
+  },
+  "clasif": {
+   "path": "data/clasificador.xlsx",
+   "name": "clasificador.xlsx",
+   "size": 12516,
+   "sha256": "7706eaaa186f55324c67f443e2511246a0b992f2ebd18fbebcdeac8ef592cbb6"
+  },
+  "pagos": {
+   "path": "data/semestral.xlsx",
+   "name": "semestral.xlsx",
+   "size": 232315,
+   "sha256": "04f3f12165b6b383b27a3bb6e2f156bcadf8238523ce9d3b0d33a8ba365568b4"
+  }
+ }
+}

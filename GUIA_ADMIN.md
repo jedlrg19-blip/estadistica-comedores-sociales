@@ -11,10 +11,16 @@ Cada gráfica tiene un chip `ⓘ archivo.xlsx` (lleva a esa ficha) y un botón `
 | `clasificador.xlsx` | Sexo / edad / pueblo |
 | `semestral.xlsx` | Pagos a proveedores |
 
+## Qué datos manda (precedencia)
+1. **Archivos cargados por el administrador en su navegador** (borradores): solo los ve el admin hasta publicar.
+2. **Lo publicado en `data/*.xlsx`** (con `data/publicado.json`, que guarda versión y huellas).
+3. **`datos.json`**: respaldo que se usa **solo si no existe ningún `data/*.xlsx`**. Nunca tapa un archivo de `data/`.
+Si un `data/*.xlsx` no se reconoce, el sitio **no** usa cifras viejas de `datos.json`: muestra «se está actualizando» al público y una advertencia en *Fuentes y trazabilidad* al administrador.
+
 ## Publicar datos desde el sitio (botón «Publicar datos»)
 1. Entre por `https://<sitio>/admin/` (también `?editor=1`, que redirige a `/admin/`).
 2. Cargue los Excel actualizados en «Fuentes de datos» y revise Resumen y Fuentes.
-3. Presione **Publicar datos**: se hace **un commit** en GitHub con `data/*.xlsx` (los archivos cargados) y `datos.json`; Cloudflare publica en 1–2 minutos.
+3. Presione **Publicar datos**: se hace **un commit** en GitHub con `data/*.xlsx` (los archivos cargados), `datos.json` y `data/publicado.json`. El diálogo espera a Cloudflare y avisa **«Ya está en vivo»** con un botón para recargar.
 4. Token: GitHub → Settings → Developer settings → Fine-grained tokens. Solo este repositorio, permiso **Contents: Read and write**, caducidad corta. Se escribe en el diálogo; no queda en el repositorio.
 
 ## Actualizar datos (administrador, por Git)
