@@ -21,7 +21,12 @@ Cada gráfica tiene un chip `ⓘ archivo.xlsx` (lleva a esa ficha) y un botón `
 ## Modo administrador
 `https://<sitio>/admin/` (o `/?editor=1`) habilita: descarga del Excel original, edición de proyección, publicar datos.
 
+## Resumen ejecutivo
+Primera pestaña: hallazgos generados con los datos cargados (cada uno cita archivo y hoja), avance contra el ritmo esperado y tabla por departamento. La meta anual usa, en este orden: `data/config.json` → meta vigente de la hoja INTEGRADO → total del mes × 12 (el origen se muestra en pantalla).
+
 ## Seguridad real (Cloudflare Zero Trust → Access)
+Automatizado: `scripts/cloudflare-access.sh` (requiere `CLOUDFLARE_API_TOKEN` y `ADMIN_EMAILS` en el entorno; no guarda secretos).
+
 `?editor=1` **no es seguridad**, solo oculta controles. Además, todo lo que está en `data/` es público por URL.
 Para que solo el admin vea/descargue los originales:
 1. Cloudflare Zero Trust → Access → Applications → *Self-hosted*.

@@ -461,6 +461,25 @@ body.present .shell{zoom:1.12;} body.present .bi-tile .v{font-size:30px;}
   .feed-head,.feed,.tabs,.status .chip.btn,#btn-present,#btn-print,.csvbtn,.mtopbar button{display:none!important;}
   .card,.gauge,.bi-tile{break-inside:avoid;} .reveal-in{animation:none!important;opacity:1!important;transform:none!important;}
 }
+
+/* ===== Resumen ejecutivo ===== */
+.ex-head{display:flex;align-items:flex-end;gap:16px;flex-wrap:wrap;margin:2px 0 14px;}
+.ex-head h2{margin:0;font:700 22px 'Space Grotesk';letter-spacing:-.01em;} .ex-head .cut{font-size:12px;color:var(--muted);}
+.ex-grid{display:grid;grid-template-columns:1.15fr .85fr;gap:14px;margin-bottom:14px;}
+.ex-find{display:flex;flex-direction:column;gap:10px;}
+.ex-item{display:flex;gap:12px;padding:12px 14px;border-radius:12px;background:var(--panel2);border:1px solid var(--line);font-size:13px;line-height:1.5;color:#d6e0ee;}
+.ex-item .ic{flex:0 0 auto;width:26px;height:26px;border-radius:8px;display:grid;place-items:center;font-size:13px;font-weight:700;}
+.ex-item.ok .ic{background:rgba(52,211,153,.15);color:#34D399;} .ex-item.warn .ic{background:rgba(251,191,36,.15);color:#FBBF24;} .ex-item.info .ic{background:rgba(96,165,250,.15);color:#60A5FA;}
+.ex-item b{color:#fff;} .ex-item .s{display:block;margin-top:3px;font-size:11px;color:var(--muted2);}
+.ex-pace{padding:16px 18px;} .ex-pace .row{display:flex;justify-content:space-between;font-size:12px;color:var(--muted);margin:10px 0 5px;}
+.ex-track{position:relative;height:14px;border-radius:99px;background:rgba(148,163,184,.16);overflow:visible;}
+.ex-track i{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,#2563EB,#34D399);}
+.ex-track u{position:absolute;top:-5px;bottom:-5px;width:2px;background:#FBBF24;border-radius:2px;}
+.ex-legend{display:flex;gap:16px;font-size:11px;color:var(--muted);margin-top:12px;flex-wrap:wrap;}
+.ex-legend span::before{content:"";display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:6px;background:var(--c);vertical-align:-1px;}
+table.fx td .db{display:inline-block;height:8px;border-radius:99px;background:linear-gradient(90deg,#1d4ed8,#60A5FA);vertical-align:middle;margin-right:8px;}
+table.fx td.n,table.fx th.n{text-align:right;font-variant-numeric:tabular-nums;}
+@media(max-width:900px){.ex-grid{grid-template-columns:1fr;}}
 </style>
 </head>
 <body>
@@ -559,7 +578,8 @@ body.present .shell{zoom:1.12;} body.present .bi-tile .v{font-size:30px;}
 
   <nav class="tabs" role="tablist">
     <span class="tab-ind" id="tab-ind" aria-hidden="true"></span>
-    <button class="tab active" id="tab-graf" role="tab">Gráficas</button>
+    <button class="tab active" id="tab-resumen" role="tab">Resumen ejecutivo</button>
+    <button class="tab" id="tab-graf" role="tab">Gráficas</button>
     <button class="tab" id="tab-clasif" role="tab">Clasificador de raciones</button>
     <button class="tab" id="tab-pagos" role="tab">Pagos a proveedores</button>
     <button class="tab" id="tab-mapa" role="tab">Indicadores y mapa</button>
@@ -567,7 +587,10 @@ body.present .shell{zoom:1.12;} body.present .bi-tile .v{font-size:30px;}
   </nav>
 
   <!-- ============ TAB 1: GRÁFICAS ============ -->
-  <section class="panel show" id="panel-graf" role="tabpanel">
+  <section class="panel show" id="panel-resumen" role="tabpanel">
+    <div id="resumen-content"></div>
+  </section>
+  <section class="panel" id="panel-graf" role="tabpanel">
     <div id="graf-content"></div>
   </section>
 
@@ -1056,12 +1079,15 @@ function gaugeSVG(opts){
 }
 
 function annualProjection(){
-  // Meta oficial publicada (config.json / edición) si existe; si no, proyección mensual vigente × 12.
-  const rac = projOverride.rac!=null ? projOverride.rac : (state.semana? state.semana.totRac*12 : null);
-  const fin = projOverride.fin!=null ? projOverride.fin : (state.semana? state.semana.totFin*12 : null);
+  // Prioridad: 1) meta publicada/editada (config.json) · 2) meta vigente oficial de la hoja INTEGRADO (DPS) · 3) total del mes × 12 (estimado).
+  const ig=state.dps&&state.dps.integrado, est=state.semana;
+  const pick=(ov,off,mes)=> ov!=null?[ov,'config']: (off>0?[off,'integrado']: (mes!=null?[mes,'estimado']:[null,null]));
+  const [rac,oR]=pick(projOverride.rac, ig&&ig.metaFis, est?est.totRac*12:null);
+  const [fin,oF]=pick(projOverride.fin, ig&&ig.presVigente, est?est.totFin*12:null);
   if(rac==null && fin==null) return null;
-  return { rac: rac||0, fin: fin||0 };
+  return { rac: rac||0, fin: fin||0, origenRac:oR, origenFin:oF };
 }
+const ORIGEN_TXT={config:'meta publicada por la Subdirección (config.json)',integrado:'meta vigente oficial (hoja INTEGRADO, DPS)',estimado:'estimación: total del mes × 12'};
 function renderAnnualGauges(){ const el=$('#annual-gauges'); if(el) el.innerHTML=buildAnnualGaugesHTML(); }
 function annualSummaryCard(){
   const d=state.dps;
@@ -1131,8 +1157,7 @@ function renderGauges(){
     const proj=annualProjection();
     let projRow='';
     if(editorMode){
-      const rv = (projOverride.rac!=null?projOverride.rac:(state.semana?state.semana.totRac*12:0));
-      const fv = (projOverride.fin!=null?projOverride.fin:(state.semana?state.semana.totFin*12:0));
+      const _pj=annualProjection()||{rac:0,fin:0}; const rv=_pj.rac, fv=_pj.fin;
       projRow = `<div class="proj-row edit">
           <div class="proj-field"><label>Proyección anual de raciones</label><input id="proj-rac" type="text" inputmode="numeric" value="${rv}"></div>
           <div class="proj-field"><label>Proyección anual de monto (Q)</label><input id="proj-fin" type="text" inputmode="numeric" value="${fv}"></div>
@@ -1144,7 +1169,7 @@ function renderGauges(){
       projRow = `<div class="proj-row locked">
           <div class="proj-field"><label>Proyección anual de raciones</label><div class="proj-val">${lock}${fmtN(proj.rac)}</div></div>
           <div class="proj-field"><label>Proyección anual de monto</label><div class="proj-val">${lock}${fmtQ(proj.fin)}</div></div>
-          <div class="proj-note">Valor fijo, no editable — definido por la Subdirección.</div>
+          <div class="proj-note">Valor fijo, no editable. Origen: ${ORIGEN_TXT[proj.origenRac]||""}${proj.origenRac!==proj.origenFin?` · monto: ${ORIGEN_TXT[proj.origenFin]||""}`:""}.</div>
         </div>`;
     }
     annual = `<div class="mini-h" style="margin-top:24px"><span class="mk">Acumulado del año</span><span class="src">Ejecución DPS vs proyección</span><span class="ln"></span></div>
@@ -1406,7 +1431,7 @@ function renderCharts(){
       <div>Cargue arriba los libros de Excel. Las gráficas semanales y anuales aparecerán aquí en cuanto haya datos.</div></div></div>`;
     return;
   }
-  let h=biBanner();
+  let h='';
   /* ---- Semanal ---- */
   h+=`<div class="sect-h"><span class="k">Ejecución semanal · Cuota por Semana</span><span class="ln"></span></div>`;
   if(p1){
@@ -1748,8 +1773,8 @@ function renderPagos(){
 /* ============================================================
    Pestañas + arranque
    ============================================================ */
-let activeTab='graf';
-const TABS=['graf','clasif','pagos','mapa','fuentes'];
+let activeTab='resumen';
+const TABS=['resumen','graf','clasif','pagos','mapa','fuentes'];
 
 /* --- Indicador deslizante de pestañas --- */
 function positionTabIndicator(){
@@ -1762,7 +1787,7 @@ window.addEventListener('resize',positionTabIndicator);
 /* --- Entrada escalonada de bloques --- */
 function revealPanel(panel){
   if(!panel) return;
-  const blocks=panel.querySelectorAll('#graf-content>.grid, #graf-content>.sect-h, #clasif-content>*, #pagos-content>.sect-h, #pagos-content>.card, #pagos-content>.grid, #pagos-content>.pcards, #pagos-content>.pagos-hero, #gauges-host>.mini-h, #gauges-host>.gauges, #gauges-host>.diag, #gauges-host>.kpis, #gauges-host>.proj-row, .maprow');
+  const blocks=panel.querySelectorAll('#resumen-content>*, #graf-content>.grid, #graf-content>.sect-h, #clasif-content>*, #pagos-content>.sect-h, #pagos-content>.card, #pagos-content>.grid, #pagos-content>.pcards, #pagos-content>.pagos-hero, #gauges-host>.mini-h, #gauges-host>.gauges, #gauges-host>.diag, #gauges-host>.kpis, #gauges-host>.proj-row, .maprow');
   let i=0;
   blocks.forEach(b=>{ b.classList.remove('reveal-in'); void b.offsetWidth; b.style.animationDelay=Math.min(i*55,560)+'ms'; b.classList.add('reveal-in'); i++; });
 }
@@ -1792,7 +1817,8 @@ function switchTab(t){
   renderActive();
 }
 function renderActive(){
-  if(activeTab==='graf'){ renderCharts(); decorateCards(); }
+  if(activeTab==='resumen'){ renderResumen(); decorateCards(); }
+  else if(activeTab==='graf'){ renderCharts(); decorateCards(); }
   else if(activeTab==='clasif') renderClasificador();
   else if(activeTab==='pagos') renderPagos();
   else if(activeTab==='fuentes') renderFuentes();
@@ -1911,7 +1937,7 @@ function buildChecks(){
       if(ig.metaFis){ const proj=annualProjection(); const pOff=d.totRac/ig.metaFis*100;
         const pUsed=proj&&proj.rac?d.totRac/proj.rac*100:null;
         add(proj&&Math.abs(proj.rac-ig.metaFis)/ig.metaFis>0.02?'warn':'ok','Meta anual de raciones: velocímetro vs. meta vigente oficial',
-          `Meta vigente (INTEGRADO): ${fmtN(ig.metaFis)} → avance ${pOff.toFixed(1)}%. `+(proj?`El velocímetro anual usa ${fmtN(proj.rac)} → ${pUsed.toFixed(1)}%. `:'')+`Para cifrar con la meta oficial, publique data/config.json con projRac=${ig.metaFis}.`); }
+          `Meta vigente (INTEGRADO): ${fmtN(ig.metaFis)} → avance ${pOff.toFixed(1)}%. `+(proj?`El velocímetro anual usa ${fmtN(proj.rac)} (${ORIGEN_TXT[proj.origenRac]}) → ${pUsed.toFixed(1)}%. `:'')+(proj&&proj.origenRac==='integrado'?'El velocímetro ya usa la meta oficial.':'Para cifrar con la meta oficial, retire data/config.json o ajuste projRac.')); }
     }
     const aprox=d.munAgg.filter(m=>!_MUNI_N[norm(m.dep)+'|'+norm(m.mun)]).length;
     add(aprox?'info':'ok','Precisión de ubicación en el mapa',aprox?`${aprox} de ${d.munAgg.length} municipios no tienen coordenada exacta; su punto se coloca de forma aproximada dentro del departamento.`:'Todos los municipios tienen coordenada.');
@@ -2036,6 +2062,63 @@ function wireExtras(){
   document.addEventListener('keydown',e=>{ if(e.key==='Escape'&&document.body.classList.contains('present')) $('#btn-present').click(); });
   const pr=$('#btn-print'); if(pr) pr.addEventListener('click',()=>window.print());
   if(editorMode){ const ab=$('#admin-badge'); if(ab) ab.style.display='inline-flex'; }
+}
+
+/* ============================================================
+   RESUMEN EJECUTIVO · hallazgos generados solo con los datos cargados (cada cifra cita su archivo)
+   ============================================================ */
+function renderResumen(){
+  const host=$('#resumen-content'); if(!host) return;
+  const d=state.dps, s=state.semana, q=state.quincena, cl=state.clasificador, pg=state.pagos;
+  if(!d&&!s){ host.innerHTML=emptyBlock('Cargue los libros de Excel para generar el resumen ejecutivo.'); return; }
+  const F=[]; const add=(lvl,html,src)=>F.push(`<div class="ex-item ${lvl}"><span class="ic">${lvl==='ok'?'✓':lvl==='warn'?'!':'i'}</span><div>${html}<span class="s">Fuente: ${src}</span></div></div>`);
+  let pace='';
+  const mSem=metaOf('semana'), mes=mSem&&mSem.mes;
+  if(d){
+    const last=d.fisMes.reduce((a,v,i)=>v>0?i:a,-1), proj=annualProjection();
+    const dep=Object.entries(d.depAgg).sort((a,b)=>b[1].rac-a[1].rac);
+    if(proj&&proj.rac&&last>=0){
+      const av=d.totRac/proj.rac*100, esp=(last+1)/12*100, gap=av-esp;
+      add(gap>=-3?'ok':'warn',`Al cierre de <b>${MESES_FULL[last].toLowerCase()}</b> se han servido <b>${fmtN(d.totRac)}</b> raciones: <b>${av.toFixed(1)}%</b> de la meta anual (${fmtN(proj.rac)}). Ritmo lineal esperado: ${esp.toFixed(1)}% (${gap>=0?'+':''}${gap.toFixed(1)} pts).`,`${srcShort('dps')} · ${ORIGEN_TXT[proj.origenRac]}`);
+      pace=`<div class="card ex-pace"><h3>Avance frente al ritmo esperado <span class="src">Meta física anual</span></h3>
+        <div class="row"><span>Ejecutado <b style="color:#fff">${av.toFixed(1)}%</b></span><span>Ritmo esperado a ${MESES_FULL[last].toLowerCase()} <b style="color:#FBBF24">${esp.toFixed(1)}%</b></span></div>
+        <div class="ex-track"><i style="width:${Math.min(100,av)}%"></i><u style="left:${Math.min(100,esp)}%"></u></div>
+        <div class="ex-legend"><span style="--c:#34D399">Avance real</span><span style="--c:#FBBF24">Línea de ritmo esperado (meses transcurridos ÷ 12)</span></div>
+        ${proj.fin?`<div class="row" style="margin-top:18px"><span>Ejecución financiera <b style="color:#fff">${(d.totFin/proj.fin*100).toFixed(1)}%</b></span><span>${fmtQk(d.totFin)} de ${fmtQk(proj.fin)}</span></div><div class="ex-track"><i style="width:${Math.min(100,d.totFin/proj.fin*100)}%;background:linear-gradient(90deg,#B45309,#FBBF24)"></i><u style="left:${Math.min(100,esp)}%"></u></div>`:''}</div>`;
+    }
+    if(dep.length>=3){ const t3=dep.slice(0,3), sh=t3.reduce((a,x)=>a+x[1].rac,0)/d.totRac*100;
+      add('info',`<b>${t3.map(x=>x[0]).join(', ')}</b> concentran el <b>${sh.toFixed(1)}%</b> de las raciones del año. Los de menor volumen: ${dep.slice(-3).map(x=>x[0]).reverse().join(', ')}.`,`${srcShort('dps')} · hoja ${d.sheet}`); }
+    const dd=d.fisMes.map((v,i)=>[i,v]).filter(x=>x[1]>0);
+    if(dd.length>1){ const a=dd[dd.length-1], b=dd[dd.length-2], p=(a[1]-b[1])/b[1]*100;
+      add(p>=0?'ok':'warn',`Las raciones de <b>${MESES_FULL[a[0]].toLowerCase()}</b> (${fmtN(a[1])}) ${p>=0?'crecieron':'bajaron'} <b>${Math.abs(p).toFixed(1)}%</b> frente a ${MESES_FULL[b[0]].toLowerCase()} (${fmtN(b[1])}).`,srcShort('dps')); }
+  }
+  if(s) add('info',`Mes de cuota${mes?' ('+MESES_FULL[mes.idx].toLowerCase()+')':''}: <b>${fmtN(s.servRac)}</b> raciones servidas de ${fmtN(s.totRac)} proyectadas; <b>${fmtQ(s.servFin)}</b> ejecutados. Costo medio <b>Q ${s.precioMedio.toFixed(2)}</b> por ración${q?`; <b>${q.comedores.length}</b> comedores activos (${q.mFijo} fijos, ${q.mMovil} móviles)`:''}.`,`${srcShort('semana')} · hoja ${s.sheet}`);
+  if(cl&&cl.total){ const t=cl.total, sx=t.sexo, tot=(sx.Femenino||0)+(sx.Masculino||0)||1, ed=t.edad, et=t.etnia, te=Object.values(et).reduce((a,b)=>a+b,0)||1, tg=Object.values(ed).reduce((a,b)=>a+b,0)||1;
+    add('info',`Perfil de la población atendida: <b>${(sx.Femenino/tot*100).toFixed(1)}%</b> mujeres; niñez <b>${(ed['Niñez']/tg*100).toFixed(1)}%</b> y personas mayores <b>${(ed['Tercera Edad']/tg*100).toFixed(1)}%</b>; pueblo maya <b>${(et.Maya/te*100).toFixed(1)}%</b>.`,`${srcShort('clasif')} · hoja ${cl.sheet}`); }
+  if(pg&&pg.totalProy>0){ const pc=pg.totalNopag/pg.totalProy*100;
+    add(pc>10?'warn':'ok',`Pagos a proveedores: <b>${fmtN(pg.totalNopag)}</b> raciones pendientes de pago (<b>${pc.toFixed(1)}%</b> de ${fmtN(pg.totalProy)} proyectadas); pagadas ${fmtN(pg.totalPag)}.`,`${srcShort('pagos')} · hoja ${pg.sheet}`); }
+  const chk=buildChecks().filter(k=>k.lvl==='warn');
+  if(chk.length) add('warn',`<b>${chk.length}</b> punto(s) por conciliar entre archivos antes de citar cifras: ${chk.slice(0,3).map(k=>k.t).join('; ')}${chk.length>3?'…':''}. <a href="#" data-goto-fx style="color:#93C5FD">Ver conciliación</a>`,'Pestaña Fuentes y trazabilidad');
+  else add('ok','Los archivos cargados concilian entre sí dentro de los umbrales definidos.','Pestaña Fuentes y trazabilidad');
+
+  // Tabla ejecutiva por departamento
+  let tabla='';
+  if(d){ const rows=Object.entries(d.depAgg).sort((a,b)=>b[1].rac-a[1].rac), mx=Math.max(1,...rows.map(r=>r[1].rac));
+    const ca=comedoresActivosPorDep();
+    tabla=`<div class="sect-h"><span class="k">Ejecución por departamento · acumulado 2026</span><span class="ln"></span></div>
+      <div class="fx-sec"><div class="fx-wrap"><table class="fx"><thead><tr><th>#</th><th>Departamento</th><th class="n">Comedores activos</th><th>Raciones</th><th class="n">% del total</th><th class="n">Monto ejecutado</th><th class="n">Q por ración</th></tr></thead><tbody>
+      ${rows.map((r,i)=>{ const v=r[1]; return `<tr><td>${i+1}</td><td><b>${r[0]}</b></td><td class="n">${(ca[r[0]]||{}).total||'—'}</td>
+        <td><span class="db" style="width:${Math.max(3,v.rac/mx*120)}px"></span>${fmtN(v.rac)}</td><td class="n">${(v.rac/d.totRac*100).toFixed(1)}%</td><td class="n">${fmtQ(v.fin)}</td><td class="n">${v.rac&&v.fin?'Q '+(v.fin/v.rac).toFixed(2):'—'}</td></tr>`; }).join('')}
+      <tr><td></td><td><b>TOTAL</b></td><td class="n"><b>${q?q.comedores.length:'—'}</b></td><td><b>${fmtN(d.totRac)}</b></td><td class="n">100%</td><td class="n"><b>${fmtQ(d.totFin)}</b></td><td class="n"></td></tr>
+      </tbody></table></div><div class="fx-note" style="margin-top:8px"><span class="srcchip" data-srcgo="dps" style="margin:0">ⓘ ${srcShort('dps')}</span> &nbsp;Comedores activos: ${srcShort('semana')}. Clic en las gráficas del siguiente apartado para el detalle.</div></div>`; }
+
+  const cut=[ mes?`Cuota: ${mes.texto.replace(/^COMEDORES SOCIALES\s*/i,'').toLowerCase()}`:null, d?(()=>{const l=d.fisMes.reduce((a,v,i)=>v>0?i:a,-1);return l>=0?`DPS: hasta ${MESES_FULL[l].toLowerCase()} 2026`:null;})():null ].filter(Boolean).join(' · ');
+  host.innerHTML=`<div class="ex-head"><h2>Resumen ejecutivo · Comedores Sociales 2026</h2><span class="cut">Corte de datos — ${cut||'según archivos cargados'} · Generado el ${new Date().toLocaleDateString('es-GT',{dateStyle:'long'})}</span></div>
+    ${biBanner()}
+    <div class="ex-grid"><div class="card"><h3>Hallazgos clave <span class="src">Generados con los datos cargados</span></h3><div class="ex-find" style="margin-top:12px">${F.join('')}</div></div>${pace||'<div></div>'}</div>
+    ${tabla}`;
+  host.querySelectorAll('[data-goto-fx]').forEach(a=>a.addEventListener('click',e=>{e.preventDefault();switchTab('fuentes');}));
+  host.querySelectorAll('[data-srcgo]').forEach(a=>a.addEventListener('click',()=>goSource(a.dataset.srcgo)));
 }
 
 window.mSeleccionarDep=mSeleccionarDep; window.mZoomComedor=mZoomComedor;
