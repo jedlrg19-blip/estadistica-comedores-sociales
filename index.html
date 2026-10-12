@@ -638,6 +638,16 @@ html[data-theme="light"] .muni .rk{background:#EDEBE9;} html[data-theme="light"]
 .mtopbar{z-index:12;}
 html[data-theme="light"] .mfoot .mlegend{background:transparent!important;border:0!important;box-shadow:none!important;}
 html[data-theme="light"] .mfoot .mnote{background:#FAF9F8!important;border:1px dashed #C8C6C4!important;}
+
+/* ===== Tipografía del mapa (pulida) ===== */
+.deplabel{font-family:'Space Grotesk',Inter,sans-serif;font-weight:700;letter-spacing:.055em;text-anchor:middle;pointer-events:none;stroke:none!important;paint-order:normal;text-rendering:geometricPrecision;}
+.depval{font-family:Inter,sans-serif;font-weight:600;letter-spacing:.02em;font-variant-numeric:tabular-nums;text-anchor:middle;pointer-events:none;stroke:none!important;opacity:.9;text-rendering:geometricPrecision;}
+.badgenum{font:700 1.5px 'Space Grotesk',Inter,sans-serif;text-anchor:middle;pointer-events:none;font-variant-numeric:tabular-nums;}
+.badge circle{filter:drop-shadow(0 .15px .35px rgba(0,0,0,.45));}
+.georef{font:italic 500 1.3px Inter,sans-serif;letter-spacing:.5px;fill:var(--muted2);opacity:.75;}
+.mkey-h{font:700 1.15px Inter,sans-serif;letter-spacing:.7px;fill:var(--muted);}
+.mkey-t{font:600 1.7px Inter,sans-serif;fill:var(--txt);letter-spacing:.01em;} .mkey-v{font:600 1.5px Inter,sans-serif;font-variant-numeric:tabular-nums;fill:var(--muted);}
+.mkey-n{font:700 1.35px 'Space Grotesk',Inter,sans-serif;font-variant-numeric:tabular-nums;}
 </style>
 </head>
 <body>
@@ -1389,8 +1399,12 @@ function mRamp(f){ const L=document.documentElement.getAttribute('data-theme')==
   return a.map((v,k)=>Math.round(v+(b[k]-v)*f)); }
 function mColorDep(dep){ const L=document.documentElement.getAttribute('data-theme')==='light'; const t=mapDepTot[dep]; if(!t||!t.rac) return L?"#EDEBE9":"#16263d";
   const c=mRamp(t.rac/mapMaxRac); return `rgb(${c[0]},${c[1]},${c[2]})`; }
-function mTextOn(rgbStr){ const m=(rgbStr||'').match(/\d+/g); if(!m||m.length<3) return {fill:'#fff',halo:'rgba(8,14,24,.7)'};
-  const lum=(0.299*m[0]+0.587*m[1]+0.114*m[2])/255; return lum>0.62?{fill:'#0F2238',halo:'rgba(255,255,255,.75)'}:{fill:'#FFFFFF',halo:'rgba(8,14,24,.65)'}; }
+function mTextOn(rgbStr){ const m=(rgbStr||'').match(/\d+/g); const WH={fill:'#FFFFFF',halo:'rgba(8,14,24,.65)',shadow:'drop-shadow(0 .1px .32px rgba(4,10,20,.75))'}, DK={fill:'#0B1D33',halo:'rgba(255,255,255,.75)',shadow:'drop-shadow(0 0 .28px rgba(255,255,255,.85))'};
+  if(!m||m.length<3) return WH;
+  const lin=v=>{ v/=255; return v<=0.03928? v/12.92 : Math.pow((v+0.055)/1.055,2.4); };
+  const L=0.2126*lin(+m[0])+0.7152*lin(+m[1])+0.0722*lin(+m[2]);
+  const cW=1.05/(L+0.05), cD=(L+0.05)/(0.0123+0.05);   // contraste WCAG con blanco y con el azul oscuro
+  return cW>=cD?WH:DK; }
 function mPath(polys){ const CAP=0.34, K=0.42; let d="";
   polys.forEach(ring=>{ const P=ring.map(c=>mProject(c[0],c[1])), n=P.length; if(n<3) return;
     const seg=(v,w)=>{ const dx=w[0]-v[0], dy=w[1]-v[1], L=Math.hypot(dx,dy)||1e-9, t=Math.min(K,CAP/L); return [v[0]+dx*t, v[1]+dy*t]; };
@@ -1426,6 +1440,15 @@ function mTipDep(e,name){ const t=mapDepTot[name]||{rac:0,mon:0}; const ca=comAc
     <div class="tt-r"><span>Monto ejecutado</span><b>${fmtQk(t.mon)}</b></div>
     <div class="tt-r"><span>Del total nacional</span><b>${(t.rac/tot*100).toFixed(1)}%</b></div>
     <div class="tt-c">Clic para ver sus comedores</div>`); }
+const _mctx=document.createElement('canvas').getContext('2d');
+const MLS=0.055;   // espaciado entre letras (em)
+function mTextW(txt,fs,font){ _mctx.font=font||"700 100px 'Space Grotesk',Inter,sans-serif"; return _mctx.measureText(txt).width*fs/100 + MLS*fs*txt.length; }
+// ancho del tramo del departamento que contiene lx, a la altura y (para que el rótulo no cruce fronteras)
+function mChord(polys,lx,y){ const xs=[];
+  polys.forEach(ring=>{ const P=ring.map(c=>mProject(c[0],c[1])); for(let i=0;i<P.length;i++){ const a=P[i], b=P[(i+1)%P.length];
+    if((a[1]<=y&&b[1]>y)||(b[1]<=y&&a[1]>y)) xs.push(a[0]+(y-a[1])/(b[1]-a[1])*(b[0]-a[0])); } });
+  xs.sort((m,n)=>m-n); for(let i=0;i+1<xs.length;i+=2){ if(lx>=xs[i]&&lx<=xs[i+1]) return [xs[i],xs[i+1]]; } return null; }
+const mTitle=n=>n.toLowerCase().replace(/(^|\s)(\S)/g,(m,a,b)=>a+b.toUpperCase()).replace(/\b(De|La|Las|Del)\b/g,x=>x.toLowerCase());
 function mRenderNacional(){
   mapCurDep=null; mapLevel='pais';
   mapEl.svg.setAttribute('viewBox',M_VBOX); mapEl.svg.innerHTML="";
@@ -1441,18 +1464,26 @@ function mRenderNacional(){
     else { path.setAttribute("class","reclamo"); }
     mapEl.svg.appendChild(path);
     if(ft.tipo!=="departamento") return;
-    const [lx,ly]=mProject(ft.centro[0],ft.centro[1]); const bb=mBounds(ft.polys), w=(bb.maxX-bb.minX)*0.94;
-    const tc=mTextOn(mColorDep(ft.name)), name=ft.name, fitFs=w/(name.length*0.62), fs=Math.min(2.4,fitFs);
-    if(fs>=1.95){ labels.push({ft,lx,ly,fs,tc}); } else { badges.push({ft,lx,ly,tc}); }
+    const [lx,ly]=mProject(ft.centro[0],ft.centro[1]); const tc=mTextOn(mColorDep(ft.name)), name=ft.name;
+    const t=mapDepTot[ft.name]; const vtxt=t&&t.rac?fmtK(t.rac):null;
+    let placed=null;
+    for(const fs of [1.9,1.7,1.5]){ const nw=mTextW(name,fs), vw=vtxt?mTextW(vtxt,fs*0.8,"600 100px Inter,sans-serif"):0;
+      const half=(y)=>{ const c=mChord(ft.polys,lx,y); return c?Math.min(lx-c[0],c[1]-lx)*2:0; };
+      const wName=Math.min(half(ly-fs*0.55),half(ly),half(ly+fs*0.15));          // franja que ocupa el nombre
+      if(wName<nw*1.06) continue;
+      const wVal=Math.min(wName,half(ly+fs*0.95),half(ly+fs*1.2));               // franja del valor (opcional)
+      placed={fs,withVal:!!vtxt&&fs>=1.7&&wVal>=vw*1.15}; break; }
+    if(placed) labels.push({ft,lx,ly,fs:placed.fs,tc,withVal:placed.withVal,vtxt}); else badges.push({ft,lx,ly,tc});
   });
-  labels.forEach(({ft,lx,ly,fs,tc})=>{ const t=mapDepTot[ft.name]; const big=fs>=2.0&&t&&t.rac;
-    const l=mk('text',{x:lx.toFixed(2),y:(ly+(big?-0.25:0.6)).toFixed(2),class:'deplabel'},ft.name);
-    l.style.fontSize=fs.toFixed(2)+'px'; l.style.fill=tc.fill; l.style.stroke=tc.halo; mapEl.svg.appendChild(l);
-    if(big){ const v=mk('text',{x:lx.toFixed(2),y:(ly+fs*0.82).toFixed(2),class:'depval'},fmtK(t.rac)); v.style.fontSize=(fs*0.74).toFixed(2)+'px'; v.style.fill=tc.fill; v.style.stroke=tc.halo; mapEl.svg.appendChild(v); } });
+  labels.forEach(({ft,lx,ly,fs,tc,withVal,vtxt})=>{
+    const dy=withVal?-fs*0.18:fs*0.34;
+    const l=mk('text',{x:lx.toFixed(2),y:(ly+dy).toFixed(2),class:'deplabel'},ft.name);
+    l.style.fontSize=fs.toFixed(2)+'px'; l.style.fill=tc.fill; l.style.filter=tc.shadow; mapEl.svg.appendChild(l);
+    if(withVal){ const v=mk('text',{x:lx.toFixed(2),y:(ly+dy+fs*1.02).toFixed(2),class:'depval'},vtxt); v.style.fontSize=(fs*0.8).toFixed(2)+'px'; v.style.fill=tc.fill; v.style.filter=tc.shadow; mapEl.svg.appendChild(v); } });
   // departamentos pequeños: insignia numerada + lista de referencias dentro del mapa
   badges.sort((a,b)=>((mapDepTot[b.ft.name]||{}).rac||0)-((mapDepTot[a.ft.name]||{}).rac||0));
-  badges.forEach((b,i)=>{ const g=mk('g',{class:'badge'}); const c=mk('circle',{cx:b.lx.toFixed(2),cy:b.ly.toFixed(2),r:'1.75'}); c.style.fill=b.tc.fill; c.style.stroke=b.tc.halo;
-    const n=mk('text',{x:b.lx.toFixed(2),y:(b.ly+0.62).toFixed(2),class:'badgenum'},String(i+1)); n.style.fill=b.tc.fill==='#FFFFFF'?'#0F2238':'#FFFFFF';
+  badges.forEach((b,i)=>{ const g=mk('g',{class:'badge'}); const c=mk('circle',{cx:b.lx.toFixed(2),cy:b.ly.toFixed(2),r:'1.55'}); c.style.fill=b.tc.fill; c.style.stroke=b.tc.halo;
+    const n=mk('text',{x:b.lx.toFixed(2),y:(b.ly+0.56).toFixed(2),class:'badgenum'},String(i+1)); n.style.fill=b.tc.fill==='#FFFFFF'?'#0F2238':'#FFFFFF';
     g.appendChild(c); g.appendChild(n); bind(g,b.ft); mapEl.svg.appendChild(g); });
   if(badges.length){ const x0=89, y0=30, rowH=3.15, wBox=28, hBox=badges.length*rowH+7.5;
     const box=mk('rect',{x:x0-2,y:y0-2.5,width:wBox,height:hBox,rx:1.6,class:'mkey-box'}); mapEl.svg.appendChild(box);
@@ -1460,7 +1491,7 @@ function mRenderNacional(){
     badges.forEach((b,i)=>{ const y=y0+6+i*rowH; const row=mk('g',{class:'mkey-row'});
       row.appendChild(mk('circle',{cx:x0+1.6,cy:y-0.7,r:1.5,class:'mkey-c'}));
       row.appendChild(mk('text',{x:x0+1.6,y:y-0.12,class:'mkey-n'},String(i+1)));
-      row.appendChild(mk('text',{x:x0+4.4,y:y,class:'mkey-t'},b.ft.name.charAt(0)+b.ft.name.slice(1).toLowerCase()));
+      row.appendChild(mk('text',{x:x0+4.4,y:y,class:'mkey-t'},mTitle(b.ft.name)));
       row.appendChild(mk('text',{x:x0+wBox-3.2,y:y,class:'mkey-v','text-anchor':'end'},fmtK((mapDepTot[b.ft.name]||{}).rac||0)));
       bind(row,b.ft); mapEl.svg.appendChild(row); }); }
   mLegendScale(); mSidebarNacional();
