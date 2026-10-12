@@ -663,6 +663,10 @@ html[data-theme="light"] .gauge svg path[stroke-width="13"]{opacity:.82!importan
 html[data-theme="light"] .tab.active,html[data-theme="light"] .pchip.on,html[data-theme="light"] .dbtn.on{background:linear-gradient(180deg,#4A7DB8,#3F72AF)!important;color:#fff;box-shadow:none;}
 html[data-theme="light"] .fx-btn.pri,html[data-theme="light"] .fh-pub{background:#3F72AF!important;border-color:#3F72AF!important;color:#fff;}
 html[data-theme="light"] .card:hover,html[data-theme="light"] .gauge:hover,html[data-theme="light"] .pcard:hover{transform:none;}
+
+#rep-menu{width:300px;background:var(--panel);border:1px solid var(--line2);border-radius:12px;box-shadow:0 14px 38px rgba(0,0,0,.35);padding:6px;}
+#rep-menu button{display:block;width:100%;text-align:left;background:transparent;border:0;color:var(--txt);padding:10px 12px;border-radius:8px;cursor:pointer;font:inherit;}
+#rep-menu button:hover{background:var(--inset);} #rep-menu button b{display:block;font:700 13px 'Space Grotesk',Inter,sans-serif;} #rep-menu button span{display:block;font-size:11.5px;color:var(--muted);margin-top:2px;line-height:1.4;}
 </style>
 </head>
 <body>
@@ -842,9 +846,9 @@ function norm(s){ return (s==null?'':String(s)).normalize('NFD').replace(/[\u030
 function num(v){ if(v==null) return 0; if(typeof v==='number') return isFinite(v)?v:0;
   const n=parseFloat(String(v).replace(/,/g,'').replace(/Q/gi,'').replace(/%/g,'').trim()); return isNaN(n)?0:n; }
 function fmtN(n){ return Math.round(n||0).toLocaleString('es-GT'); }
-function fmtQ(n){ return 'Q ' + (n||0).toLocaleString('es-GT',{minimumFractionDigits:2,maximumFractionDigits:2}); }
-function fmtQk(n){ n=n||0; if(Math.abs(n)>=1e6) return 'Q '+(n/1e6).toLocaleString('es-GT',{maximumFractionDigits:2})+' M';
-  if(Math.abs(n)>=1e3) return 'Q '+(n/1e3).toLocaleString('es-GT',{maximumFractionDigits:0})+' k'; return fmtQ(n); }
+function fmtQ(n){ return 'Q\u00A0' + (n||0).toLocaleString('es-GT',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+function fmtQk(n){ n=n||0; if(Math.abs(n)>=1e6) return 'Q\u00A0'+(n/1e6).toLocaleString('es-GT',{maximumFractionDigits:2})+' M';
+  if(Math.abs(n)>=1e3) return 'Q\u00A0'+(n/1e3).toLocaleString('es-GT',{maximumFractionDigits:0})+' k'; return fmtQ(n); }
 
 const DEPS=["ALTA VERAPAZ","BAJA VERAPAZ","CHIMALTENANGO","CHIQUIMULA","EL PROGRESO","ESCUINTLA","GUATEMALA","HUEHUETENANGO","IZABAL","JALAPA","JUTIAPA","PETÉN","QUETZALTENANGO","QUICHÉ","RETALHULEU","SACATEPÉQUEZ","SAN MARCOS","SANTA ROSA","SOLOLÁ","SUCHITEPÉQUEZ","TOTONICAPÁN","ZACAPA"];
 const CANON={}; DEPS.forEach(d=>CANON[norm(d)]=d);
@@ -940,7 +944,8 @@ function parseCuotaQuincena(wb){
                     ejec:cTotEj>=0?num(r[cTotEj]):0, rac:cTotRac>=0?num(r[cTotRac]):0});
     totDes+=num(r[cDes]); totAlm+=num(r[cAlm]);
   }
-  return {comedores,mFijo,mMovil,contr,totDes,totAlm,sheet:sn};
+  const rangos=(R[h-1]||[]).filter(x=>typeof x==='string'&&/SEMANA/i.test(x)&&/\(/.test(x)).map(x=>x.trim());
+  return {comedores,mFijo,mMovil,contr,totDes,totAlm,sheet:sn,rangos};
 }
 
 /* ---------- PARSER 3: DPS Comedores → mapa + tendencia ---------- */
@@ -992,7 +997,7 @@ function parseIntegrado(wb){
   if(!row) return null;
   const g=f=>{ const j=col(f); return j<0?null:num(row[j]); };
   return { sheet:sn, presInicial:g(x=>x.includes('INICIAL')), presVigente:g(x=>x.includes('VIGENTE')&&x.includes('PRESUP')),
-    ejecFin:g(x=>x==='EJECUCION FINANCIERA'), metaFis:g(x=>x.includes('META FISICA')), ejecFis:g(x=>x==='EJECUTADO') };
+    ejecFin:g(x=>x==='EJECUCION FINANCIERA'), metaFis:g(x=>x.includes('META FISICA')), ejecFis:g(x=>x==='EJECUTADO'), ejecVigente:g(x=>x==='EJECUCION VIGENTE') };
 }
 
 /* ---------- Shared state ---------- */
@@ -1343,7 +1348,7 @@ function renderGauges(){
       <div class="kpi"><div class="k">Raciones proyectadas (mes)</div><div class="v">${fmtN(p.totRac)}</div></div>
       <div class="kpi"><div class="k">Monto ejecutado</div><div class="v sm">${fmtQ(p.servFin)}</div></div>
       <div class="kpi"><div class="k">Monto proyectado (mes)</div><div class="v sm">${fmtQ(p.totFin)}</div></div></div>`;
-    monthly = `<div class="mini-h"><span class="mk">Mes en curso</span><span class="src">Cuota por Semana</span><span class="ln"></span></div>
+    monthly = `<div class="mini-h"><span class="mk">${mesCuotaTxt()}</span><span class="src">Cuota por Semana</span><span class="ln"></span></div>
       <div class="gauges">
         <div class="gauge">${g1}<div class="gtitle">Ejecución física</div><div class="gsub">del total proyectado del mes</div></div>
         <div class="gauge">${g2}<div class="gtitle">Ejecución financiera</div><div class="gsub">del total proyectado del mes</div></div>
@@ -1352,7 +1357,7 @@ function renderGauges(){
       <div class="diag ${cls}"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" style="flex:0 0 auto;margin-top:1px"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.6"/><path d="M12 8v5m0 3h.01" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg><div>${txt}</div></div>
       ${kpis}`;
   } else {
-    monthly = `<div class="mini-h"><span class="mk">Mes en curso</span><span class="ln"></span></div>` + emptyBlock('Cargue <b>Cuota por Semana</b> para ver la ejecución del mes.');
+    monthly = `<div class="mini-h"><span class="mk">${mesCuotaTxt()}</span><span class="ln"></span></div>` + emptyBlock('Cargue <b>Cuota por Semana</b> para ver la ejecución del mes.');
   }
 
   // ---------- Acumulado del año (DPS vs proyección) ----------
@@ -2346,7 +2351,7 @@ function wireExtras(){
   const bt=$('#btn-theme'); if(bt){ bt.textContent=isLight()?'☾ Tema oscuro':'☀ Tema claro'; bt.addEventListener('click',()=>setTheme(isLight()?'dark':'light')); }
   const bp=$('#btn-present'); if(bp) bp.addEventListener('click',()=>{ const on=document.body.classList.toggle('present'); bp.textContent=on?'■ Salir de presentación':'▶ Presentar'; setTimeout(positionTabIndicator,60); });
   document.addEventListener('keydown',e=>{ if(e.key==='Escape'&&document.body.classList.contains('present')) $('#btn-present').click(); });
-  const pr=$('#btn-print'); if(pr) pr.addEventListener('click',imprimirInforme);
+  const pr=$('#btn-print'); if(pr) pr.addEventListener('click',e=>{ e.stopPropagation(); abrirMenuInforme(pr); });
   if(editorMode){ const ab=$('#admin-badge'); if(ab){ ab.style.display='inline-flex'; ab.style.cursor='pointer'; ab.title='Clic para salir del modo administrador'; ab.addEventListener('click',()=>{ try{ sessionStorage.removeItem('mides_admin'); }catch(e){} location.reload(); }); } }
 }
 
@@ -2382,7 +2387,7 @@ function renderResumen(){
   if(cl&&cl.total){ const t=cl.total, sx=t.sexo, tot=(sx.Femenino||0)+(sx.Masculino||0)||1, ed=t.edad, et=t.etnia, te=Object.values(et).reduce((a,b)=>a+b,0)||1, tg=Object.values(ed).reduce((a,b)=>a+b,0)||1;
     add('info',`Perfil de la población atendida: <b>${(sx.Femenino/tot*100).toFixed(1)}%</b> mujeres; niñez <b>${(ed['Niñez']/tg*100).toFixed(1)}%</b> y personas mayores <b>${(ed['Tercera Edad']/tg*100).toFixed(1)}%</b>; pueblo maya <b>${(et.Maya/te*100).toFixed(1)}%</b>.`,`${srcShort('clasif')} · hoja ${cl.sheet}`); }
   if(pg&&pg.totalProy>0){ const pc=pg.totalNopag/pg.totalProy*100;
-    add(pc>10?'warn':'ok',`Pagos a proveedores: <b>${fmtN(pg.totalNopag)}</b> raciones pendientes de pago (<b>${pc.toFixed(1)}%</b> de ${fmtN(pg.totalProy)} proyectadas); pagadas ${fmtN(pg.totalPag)}.`,`${srcShort('pagos')} · hoja ${pg.sheet}`); }
+    add('info',`Registro de pagos: de <b>${fmtN(pg.totalProy)}</b> raciones proyectadas, <b>${fmtN(pg.totalPag)}</b> figuran como pagadas y <b>${fmtN(pg.totalNopag)}</b> como no pagadas (${pc.toFixed(1)}%). La fuente no distingue entre raciones por pagar y proyectadas que no se prestaron.`,`${srcShort('pagos')} · hoja ${pg.sheet}`); }
   const chk=editorMode?buildChecks().filter(k=>k.lvl==='warn'):[];
   if(editorMode&&chk.length) add('warn',`<b>${chk.length}</b> punto(s) por conciliar entre archivos antes de citar cifras: ${chk.slice(0,3).map(k=>k.t).join('; ')}${chk.length>3?'…':''}. <a href="#" data-goto-fx style="color:#93C5FD">Ver conciliación</a>`,'Pestaña Fuentes y trazabilidad');
   else if(editorMode) add('ok','Los archivos cargados concilian entre sí dentro de los umbrales definidos.','Pestaña Fuentes y trazabilidad');
@@ -2446,13 +2451,13 @@ const FRIEND={sexo:{'Femenino':'Mujeres','Masculino':'Hombres'},
   edad:{'Niñez':'Niñez (0 a 12 años)','Juventud':'Juventud (13 a 30)','Adultos':'Adultez (30 a 60)','Tercera Edad':'Personas mayores (más de 60)'},
   etnia:{'Maya':'Maya','Xinca':'Xinca','Garífuna':'Garífuna','Mestizo':'Mestizo','Otro':'Otro'}};
 const fr=(dim,n)=>(FRIEND[dim]&&FRIEND[dim][n])||n;
-const pctTxt=v=>v.toLocaleString('es-GT',{minimumFractionDigits:v<10&&v>0?1:0,maximumFractionDigits:1})+'%';
+const pctTxt=v=>{ v=+v; if(v>0&&v<0.05) return '<0.1%'; return v.toLocaleString('es-GT',{minimumFractionDigits:1,maximumFractionDigits:1})+'%'; };
 function qCard(dim,titulo,cur){
   const es=dimEntries(cur,dim), tot=es.reduce((a,e)=>a+e.value,0)||1, top=es.slice().sort((a,b)=>b.value-a.value)[0];
   let big,sent;
   if(dim==='sexo'){ big=pctTxt(top.value/tot*100); sent=`de las raciones fue para <b>${top.name==='Femenino'?'mujeres':'hombres'}</b>.`; }
   else if(dim==='edad'){ big=pctTxt(top.value/tot*100); sent=`es el grupo más atendido: <b>${fr('edad',top.name)}</b>.`; }
-  else { const ind=(cur.etnia['Maya']||0)+(cur.etnia['Xinca']||0)+(cur.etnia['Garífuna']||0); big=pctTxt(ind/tot*100); sent=`de las raciones fue para <b>pueblos indígenas y afrodescendiente</b> (${fmtN(ind)} raciones).`; }
+  else { const ind=(cur.etnia['Maya']||0)+(cur.etnia['Xinca']||0)+(cur.etnia['Garífuna']||0); big=pctTxt(ind/tot*100); sent=`de las raciones fue para los <b>pueblos maya, xinca y garífuna</b> (${fmtN(ind)} raciones).`; }
   const bar=es.map(e=>`<i style="width:${(e.value/tot*100).toFixed(2)}%;background:${e.color}" title="${fr(dim,e.name)}: ${pctTxt(e.value/tot*100)}"></i>`).join('');
   const rows=es.slice().sort((a,b)=>b.value-a.value).map(e=>`<div class="q-row"><span class="d" style="background:${e.color}"></span><span class="n">${fr(dim,e.name)}</span><b>${pctTxt(e.value/tot*100)}</b><span class="r">${fmtN(e.value)}</span></div>`).join('');
   return `<div class="q-card"><div class="qt">${titulo}</div><div class="qbig">${big}</div><div class="qsent">${sent}</div><div class="q-bar">${bar}</div>${rows}</div>`;
@@ -2570,6 +2575,9 @@ function renderUpdated(){
    ============================================================ */
 const RP={blue:'#2a78d6',orange:'#eb6834',aqua:'#1baf7a',yellow:'#eda100',magenta:'#e87ba4',violet:'#6250d6',ink:'#252423',mute:'#605E5C',grid:'rgba(0,0,0,.09)'};
 const esc=t=>String(t==null?'':t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+function mesCuotaTxt(){ const m=metaOf('semana')&&metaOf('semana').mes; return m?'Cuota de '+MESES_FULL[m.idx].toLowerCase():'Cuota del mes'; }
+const lista=a=>a.length<2?(a[0]||''):a.slice(0,-1).join(', ')+' y '+a[a.length-1];
+const nomContr=k=>({'LICITACION':'licitación','CONTRATO ABIERTO':'contrato abierto','COMPRA DIRECTA':'compra directa'}[String(k).toUpperCase()]||String(k).toLowerCase());
 const rpct=(a,b,dec=1)=>b?(a/b*100).toFixed(dec)+'%':'—';
 const mesN=i=>MESES_FULL[i].toLowerCase();
 const mesCap=i=>MESES_FULL[i].charAt(0)+MESES_FULL[i].slice(1).toLowerCase();
@@ -2577,7 +2585,7 @@ const mesCap=i=>MESES_FULL[i].charAt(0)+MESES_FULL[i].slice(1).toLowerCase();
 function chartPNG(cfg,w,h){
   const cv=document.createElement('canvas'); cv.width=w; cv.height=h; cv.style.width=w+'px'; cv.style.height=h+'px';
   cfg.options=Object.assign({responsive:false,animation:false,devicePixelRatio:2,maintainAspectRatio:false},cfg.options||{});
-  cfg.plugins=cfg.plugins||DL; const ch=new Chart(cv,cfg); const url=cv.toDataURL('image/png'); ch.destroy(); return url;
+  cfg.plugins=cfg.plugins||DL; const ch=new Chart(cv,cfg); try{ return cv.toDataURL('image/png'); } finally { ch.destroy(); }
 }
 const rGrid={color:RP.grid,lineWidth:1,drawTicks:false}, rBorder={display:false};
 const rLbl=(fmt,extra)=>Object.assign({display:true,anchor:'end',align:'end',color:RP.ink,font:{size:10,weight:600},formatter:fmt},extra||{});
@@ -2600,21 +2608,22 @@ function rStack(labels,sets,w,h,pct){
 }
 
 function informeMapaSVG(){
-  const sv={svg:mapEl.svg,back:mapEl.back,title:mapEl.title,side:mapEl.side};
+  const sv={svg:mapEl.svg,back:mapEl.back,title:mapEl.title,side:mapEl.side,dep:mapCurDep,lvl:mapLevel};
   const tmp=document.createElementNS(SVGNS,'svg'); mapEl.svg=tmp; mapEl.back={style:{}}; mapEl.title={}; mapEl.side={innerHTML:''};
-  try{ mBuildData(); mRenderNacional(); }catch(e){ console.warn('mapa informe',e); }
-  const out=tmp.outerHTML.replace('<svg ','<svg xmlns="http://www.w3.org/2000/svg" ');
-  mapEl.svg=sv.svg; mapEl.back=sv.back; mapEl.title=sv.title; mapEl.side=sv.side;
+  let out='';
+  try{ mBuildData(); mRenderNacional(); out=tmp.outerHTML.replace('<svg ','<svg xmlns="http://www.w3.org/2000/svg" '); }catch(e){ console.warn('mapa informe',e); }
+  finally{ mapEl.svg=sv.svg; mapEl.back=sv.back; mapEl.title=sv.title; mapEl.side=sv.side; mapCurDep=sv.dep; mapLevel=sv.lvl; }
   return out;
 }
 
 const INFORME_CSS=`
 @page{size:A4;margin:17mm 15mm 18mm 15mm;@bottom-right{content:"Página " counter(page) " de " counter(pages);font:8.5pt Inter,sans-serif;color:#605E5C;}@bottom-left{content:"Informe Ejecutivo · Programa Comedores Sociales 2026";font:8.5pt Inter,sans-serif;color:#605E5C;}}
-@page:first{margin:0;@bottom-right{content:none}@bottom-left{content:none}}
+@page cover{margin:0;@bottom-right{content:none}@bottom-left{content:none}}
 *{box-sizing:border-box;} html,body{margin:0;padding:0;background:#fff;color:#252423;font:10pt/1.5 Inter,'Segoe UI',Arial,sans-serif;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
 h1,h2,h3,h4{font-family:'Space Grotesk',Inter,sans-serif;margin:0;color:#0B2A4A;} p{margin:0 0 8pt;text-align:justify;hyphens:auto;}
-.cover{height:297mm;position:relative;background:linear-gradient(160deg,#0B2A4A 0%,#0F4C81 62%,#118DFF 130%);color:#fff;padding:26mm 22mm;page-break-after:always;overflow:hidden;}
+.cover{page:cover;height:297mm;position:relative;background:linear-gradient(160deg,#0B2A4A 0%,#0F4C81 62%,#118DFF 130%);color:#fff;padding:26mm 22mm;page-break-after:always;overflow:hidden;}
 .cover::after{content:"";position:absolute;right:-60mm;bottom:-60mm;width:170mm;height:170mm;border-radius:50%;background:rgba(255,255,255,.06);}
+.cover .interno{position:absolute;top:26mm;right:22mm;border:1.2pt solid #FBBF24;color:#FBBF24;padding:2mm 4mm;border-radius:2mm;font:700 8.5pt 'Space Grotesk';letter-spacing:.14em;}
 .cover .logo{background:#fff;border-radius:10px;padding:9px 16px;display:inline-block;} .cover .logo img{height:42px;display:block;}
 .cover .org{margin-top:22mm;font:600 9pt 'Space Grotesk';letter-spacing:.16em;text-transform:uppercase;opacity:.85;}
 .cover h1{color:#fff;font-size:34pt;line-height:1.08;margin-top:6mm;letter-spacing:-.01em;} .cover h2{color:#BFDBFE;font-size:15pt;font-weight:500;margin-top:5mm;}
@@ -2629,7 +2638,7 @@ h3{font-size:11.5pt;margin:6mm 0 2.5mm;color:#0F4C81;} h3:first-child{margin-top
 .lead{font-size:11pt;line-height:1.55;color:#252423;}
 .kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:3.5mm;margin:0 0 6mm;} .kpi{border:.75pt solid #D2D0CE;border-left:3pt solid var(--c,#118DFF);border-radius:2mm;padding:3.2mm 3.5mm;break-inside:avoid;}
 .kpi .k{font:600 7pt Inter;letter-spacing:.08em;text-transform:uppercase;color:#605E5C;} .kpi .v{font:700 17pt 'Space Grotesk';color:#0B2A4A;margin-top:1mm;letter-spacing:-.01em;} .kpi .s{font-size:8pt;color:#605E5C;margin-top:.5mm;}
-.hallazgos{margin:0 0 6mm;padding:0;list-style:none;} .hallazgos li{position:relative;padding:2.4mm 0 2.4mm 6mm;border-bottom:.5pt solid #EDEBE9;break-inside:avoid;text-align:justify;} .hallazgos li::before{content:"";position:absolute;left:0;top:4.4mm;width:2.2mm;height:2.2mm;border-radius:50%;background:#118DFF;}
+.hallazgos{margin:0 0 6mm;padding:0;list-style:none;} .hallazgos li{position:relative;padding:1.8mm 0 1.8mm 6mm;border-bottom:.5pt solid #EDEBE9;break-inside:avoid;text-align:justify;} .hallazgos li::before{content:"";position:absolute;left:0;top:4.4mm;width:2.2mm;height:2.2mm;border-radius:50%;background:#118DFF;}
 .hallazgos li.warn::before{background:#eda100;} .hallazgos li.ok::before{background:#1baf7a;}
 .fig{margin:0 0 5mm;break-inside:avoid;} .fig img{width:100%;display:block;} .fig figcaption{font-size:8pt;color:#605E5C;margin-top:1.5mm;} .fig .t{font:600 9.5pt 'Space Grotesk';color:#0B2A4A;margin-bottom:1.5mm;}
 .row2{display:grid;grid-template-columns:1fr 1fr;gap:5mm;} .row3{display:grid;grid-template-columns:repeat(3,1fr);gap:4mm;}
@@ -2651,13 +2660,18 @@ svg.mapa .badge circle{stroke-width:.3;} svg.mapa .badgenum{font:700 1.5px 'Spac
 svg.mapa .mkey-box{fill:#fff;stroke:#C8C6C4;stroke-width:.2;} svg.mapa .mkey-h{font:700 1.15px Inter,sans-serif;letter-spacing:.7px;fill:#605E5C;} svg.mapa .mkey-c{fill:#118DFF;} svg.mapa .mkey-n{font:700 1.35px 'Space Grotesk',Inter,sans-serif;fill:#fff;text-anchor:middle;} svg.mapa .mkey-t{font:600 1.7px Inter,sans-serif;fill:#252423;} svg.mapa .mkey-v{font:600 1.5px Inter,sans-serif;fill:#605E5C;}
 `;
 
-function informeHTML(){
+const SEC_TAB={resumen:['resumen','avance'],graf:['evolucion','territorio','cuota'],clasif:['perfil'],pagos:['pagos'],mapa:['avance','cuota','territorio','depto'],fuentes:[]};
+const TAB_LABEL={resumen:'Resumen ejecutivo',graf:'Gráficas',clasif:'Clasificador de raciones',pagos:'Pagos a proveedores',mapa:'Indicadores y mapa',fuentes:'Fuentes y trazabilidad'};
+const SEC_KEY=[['Resumen ejecutivo','resumen'],['Avance frente','avance'],['Evolución mensual','evolucion'],['Ejecución territorial','territorio'],['Detalle del departamento','depto'],['Ejecución mensual según','cuota'],['Perfil','perfil'],['Registro de pagos','pagos'],['Notas sobre','notas']];
+function informeHTML(opts){
+  opts=opts||{}; const only=opts.only&&SEC_TAB[opts.only]?opts.only:null, depSel=mapCurDep;
   const d=state.dps,s=state.semana,q=state.quincena,cl=state.clasificador,pg=state.pagos;
   const u=lastUpdate(), proj=annualProjection(), now=new Date(), logo=(document.querySelector('.brand-logo')||{}).src||'';
   const lastM=d?d.fisMes.reduce((a,v,i)=>v>0?i:a,-1):-1, mc=metaOf('semana')&&metaOf('semana').mes;
   const yr=(u.date||now).getFullYear(); const secs=[];
-  const sec=(titulo,sub,html,nobreak)=>secs.push({titulo,sub,html,nobreak});
+  const sec=(titulo,sub,html,nobreak)=>{ const k=(SEC_KEY.find(x=>titulo.startsWith(x[0]))||[0,'otro'])[1]; secs.push({titulo,sub,html,nobreak,key:k}); };
   const kpi=(k,v,s2,c)=>`<div class="kpi" style="--c:${c||RP.blue}"><div class="k">${k}</div><div class="v">${v}</div>${s2?`<div class="s">${s2}</div>`:''}</div>`;
+  const pgPeriodo=pg&&pg.months&&pg.months.length?`${mesN(pg.months[0].idx>=0?pg.months[0].idx:0)} a ${mesN(pg.months[pg.months.length-1].idx>=0?pg.months[pg.months.length-1].idx:0)}`:'';
   const notas=[];                                                                       // limitaciones de la información (se imprimen en la sección final)
 
   /* ---------- 1. Resumen ejecutivo ---------- */
@@ -2673,12 +2687,12 @@ function informeHTML(){
     if(s) k.push(kpi('Raciones del mes (cuota)',fmtN(s.servRac),(mc?mesCap(mc.idx)+' · ':'')+fmtQk(s.servFin),RP.blue));
     if(q) k.push(kpi('Comedores activos',fmtN(q.comedores.length),q.mFijo+' fijos · '+q.mMovil+' móviles',RP.orange));
     if(d){ const dep=Object.entries(d.depAgg).sort((a,b)=>b[1].rac-a[1].rac), t3=dep.slice(0,3), sh=t3.reduce((a,x)=>a+x[1].rac,0)/d.totRac*100;
-      H.push(['',`<b>Concentración territorial.</b> ${t3.map(x=>mTitle(x[0])).join(', ')} concentran el ${sh.toFixed(1)}% de las raciones del año; los departamentos de menor volumen son ${dep.slice(-3).map(x=>mTitle(x[0])).reverse().join(', ')}.`]);
+      H.push(['',`<b>Concentración territorial.</b> ${lista(t3.map(x=>mTitle(x[0])))} concentran el ${sh.toFixed(1)}% de las raciones del año; los departamentos de menor volumen son ${lista(dep.slice(-3).map(x=>mTitle(x[0])).reverse())}.`]);
       const dd=d.fisMes.map((v,i)=>[i,v]).filter(x=>x[1]>0); if(dd.length>1){ const a=dd[dd.length-1],b=dd[dd.length-2],p=(a[1]-b[1])/b[1]*100; H.push([p>=0?'ok':'warn',`<b>Evolución reciente.</b> Las raciones de ${mesN(a[0])} (${fmtN(a[1])}) ${p>=0?'aumentaron':'disminuyeron'} ${Math.abs(p).toFixed(1)}% frente a ${mesN(b[0])} (${fmtN(b[1])}).`]); } }
     if(cl&&cl.total){ const t=cl.total, sx=t.sexo, ts=(sx.Femenino||0)+(sx.Masculino||0)||1, ed=t.edad, tg=Object.values(ed).reduce((a,b)=>a+b,0)||1;
-      H.push(['',`<b>Población atendida.</b> El ${(sx.Femenino/ts*100).toFixed(1)}% de las raciones fue para mujeres; la niñez representa ${(ed['Niñez']/tg*100).toFixed(1)}% y las personas mayores ${(ed['Tercera Edad']/tg*100).toFixed(1)}%.`]); }
-    if(pg&&pg.totalProy>0){ const pc=pg.totalNopag/pg.totalProy*100; H.push([pc>10?'warn':'ok',`<b>Pagos a proveedores.</b> Se han pagado ${fmtN(pg.totalPag)} de ${fmtN(pg.totalProy)} raciones proyectadas (${(100-pc).toFixed(1)}%); quedan ${fmtN(pg.totalNopag)} raciones pendientes de pago (${pc.toFixed(1)}%).`]); }
-    sec('Resumen ejecutivo','Cifras clave y lectura general',`<p class="lead">${lead}</p>${lead2?`<p class="lead">${lead2}</p>`:''}<div class="kpis">${k.join('')}</div><h3>Hallazgos principales</h3><ul class="hallazgos">${H.map(h=>`<li class="${h[0]}">${h[1]}</li>`).join('')}</ul>`,true);
+      H.push(['',`<b>Perfil de las raciones servidas.</b> El ${(sx.Femenino/ts*100).toFixed(1)}% de las raciones fue para mujeres; la niñez representa ${(ed['Niñez']/tg*100).toFixed(1)}% y las personas mayores ${(ed['Tercera Edad']/tg*100).toFixed(1)}%.`]); }
+    if(pg&&pg.totalProy>0){ const pc=pg.totalNopag/pg.totalProy*100; H.push(['',`<b>Registro de pagos.</b> Según la hoja de Raciones Semestrales, de ${fmtN(pg.totalProy)} raciones proyectadas${pgPeriodo?' ('+pgPeriodo+')':''}, ${fmtN(pg.totalPag)} figuran como pagadas (${(100-pc).toFixed(1)}%) y ${fmtN(pg.totalNopag)} como no pagadas (${pc.toFixed(1)}%). La fuente no distingue entre raciones por pagar y raciones proyectadas que no se prestaron.`]); }
+    sec('Resumen ejecutivo','Cifras clave y lectura general',`<p class="lead">${lead}</p>${lead2?`<p class="lead">${lead2}</p>`:''}<div class="kpis">${k.join('')}</div>${H.length?`<h3>Hallazgos principales</h3><ul class="hallazgos">${H.map(h=>`<li class="${h[0]}">${h[1]}</li>`).join('')}</ul>`:''}`,true);
   }
 
   /* ---------- 2. Avance frente a la meta anual ---------- */
@@ -2694,9 +2708,10 @@ function informeHTML(){
         <tr><td>Raciones servidas</td><td class="n">${fmtN(proj.rac)}</td><td class="n">${fmtN(d.totRac)}</td><td class="n">${av.toFixed(1)}%</td><td class="n">${esp.toFixed(1)}%</td></tr>
         ${avF!=null?`<tr><td>Monto ejecutado</td><td class="n">${fmtQ(proj.fin)}</td><td class="n">${fmtQ(d.totFin)}</td><td class="n">${avF.toFixed(1)}%</td><td class="n">${esp.toFixed(1)}%</td></tr>`:''}</tbody></table>
       <h3>Interpretación</h3>
-      <p>El avance físico se encuentra <b>${Math.abs(brecha).toFixed(1)} puntos porcentuales ${brecha>=0?'por encima':'por debajo'}</b> del ritmo lineal esperado. ${brecha>=-3&&brecha<=3?'La diferencia es reducida, por lo que la ejecución puede considerarse alineada con la programación anual.':brecha>3?'El programa avanza a un ritmo superior al previsto para este momento del año.':'El programa avanza a un ritmo inferior al previsto, por lo que conviene dar seguimiento a los meses siguientes.'}</p>
-      ${mesesRest>0?`<p>Para alcanzar la meta anual restan ${fmtN(rest)} raciones en ${mesesRest} mes(es), lo que equivale a un promedio de <b>${fmtN(ritmoNec)} raciones mensuales</b>, frente a un promedio mensual observado de ${fmtN(ritmoAct)} en lo que va del año.</p>`:''}
-      ${avF!=null&&Math.abs(avF-av)>5?`<p>La ejecución financiera (${avF.toFixed(1)}%) difiere de la física (${av.toFixed(1)}%) en ${Math.abs(avF-av).toFixed(1)} puntos. Debe considerarse que el registro financiero del archivo de ejecución puede no contener todos los meses (véase la sección de notas sobre la información).</p>`:''}`);
+      <p>El avance físico se encuentra <b>${Math.abs(brecha).toFixed(1)} ${Math.abs(brecha).toFixed(1)==='1.0'?'punto porcentual':'puntos porcentuales'} ${brecha>=0?'por encima':'por debajo'}</b> del ritmo lineal de referencia. ${brecha>=-3&&brecha<=3?'La diferencia es reducida. Debe tenerse presente que el ritmo lineal es solo una referencia: el informe no dispone de una programación mensual y la ejecución puede variar por temporada.':brecha>3?'El programa avanza a un ritmo superior al de referencia para este momento del año.':'El programa avanza a un ritmo inferior al de referencia, por lo que conviene dar seguimiento a los meses siguientes.'}</p>${avF!=null&&avF<esp-5?`<p>La ejecución financiera se ubica <b>${(esp-avF).toFixed(1)} puntos porcentuales por debajo</b> del ritmo lineal de referencia.</p>`:''}
+      ${mesesRest>0?`<p>Al corte de ${mesN(lastM)} restan ${fmtN(rest)} raciones para alcanzar la meta anual y ${mesesRest} ${mesesRest===1?'mes':'meses'} del año (${mesN(lastM+1)} a diciembre), lo que equivale a un promedio de <b>${fmtN(ritmoNec)} raciones mensuales</b>, frente a un promedio mensual observado de ${fmtN(ritmoAct)} en lo que va del año. Como la información de ejecución no incluye los meses posteriores al corte, este promedio es solo indicativo.</p>`:''}
+      ${avF!=null&&Math.abs(avF-av)>5?`<p>La ejecución financiera (${avF.toFixed(1)}%) difiere de la física (${av.toFixed(1)}%) en ${Math.abs(avF-av).toFixed(1)} puntos. Entre las posibles razones está que el archivo de ejecución no registra monto para algunos meses (véase la sección de notas sobre la información).</p>`:''}
+      ${(()=>{ const ig=d.integrado; if(!ig||!ig.ejecVigente) return ''; return `<div class="note">Base de la meta financiera: la meta de ${fmtQk(proj.fin)} corresponde al presupuesto vigente de la hoja INTEGRADO del archivo de Ejecución DPS. Si el mismo monto ejecutado se compara contra la «ejecución vigente» de esa hoja (${fmtQk(ig.ejecVigente)}), el avance financiero sería de ${(d.totFin/ig.ejecVigente*100).toFixed(1)}%. Ambas bases son válidas según el concepto utilizado; conviene citar siempre la base.</div>`; })()}`);
   }
 
   /* ---------- 3. Evolución mensual ---------- */
@@ -2712,7 +2727,8 @@ function informeHTML(){
       <div class="row2"><figure class="fig"><div class="t">Raciones servidas por mes</div><img src="${img1}"></figure><figure class="fig"><div class="t">Monto ejecutado por mes (Q)</div><img src="${img2}"><figcaption>«s/d»: sin dato de monto en el archivo.</figcaption></figure></div>
       <table><thead><tr><th>Mes</th><th class="n">Raciones</th><th class="n">Variación mensual</th><th class="n">Monto ejecutado</th><th class="n">Costo por ración</th></tr></thead><tbody>
       ${idx.map((i,k)=>{ const prev=k>0?d.fisMes[idx[k-1]]:0, vr=prev?((d.fisMes[i]-prev)/prev*100):null; return `<tr><td>${mesCap(i)}</td><td class="n">${fmtN(d.fisMes[i])}</td><td class="n">${vr==null?'—':(vr>=0?'+':'')+vr.toFixed(1)+'%'}</td><td class="n">${d.finMes[i]>0?fmtQ(d.finMes[i]):'sin dato'}</td><td class="n">${d.finMes[i]>0&&d.fisMes[i]?'Q '+(d.finMes[i]/d.fisMes[i]).toFixed(2):'—'}</td></tr>`; }).join('')}
-      <tr class="tot"><td>Total</td><td class="n">${fmtN(d.totRac)}</td><td class="n"></td><td class="n">${fmtQ(d.totFin)}</td><td class="n"></td></tr></tbody></table>`);
+      <tr class="tot"><td>Total</td><td class="n">${fmtN(d.totRac)}</td><td class="n"></td><td class="n">${fmtQ(d.totFin)}</td><td class="n"></td></tr></tbody></table>
+      ${(()=>{ const cs=idx.filter(i=>d.finMes[i]>0&&d.fisMes[i]).map(i=>d.finMes[i]/d.fisMes[i]).sort((a,b)=>a-b); if(cs.length<3) return ''; const med=cs[Math.floor(cs.length/2)]; const at=idx.filter(i=>d.finMes[i]>0&&d.fisMes[i]&&Math.abs(d.finMes[i]/d.fisMes[i]-med)/med>0.45); return at.length?`<div class="note">El costo por ración de ${lista(at.map(mesN))} se aleja notablemente del resto de los meses (mediana de Q ${med.toFixed(2)}), lo que sugiere desfases entre el registro de raciones y el de montos. El costo por ración debe interpretarse como referencia y no como medida de eficiencia.</div>`:''; })()}`);
   }
 
   /* ---------- 4. Ejecución territorial ---------- */
@@ -2721,57 +2737,75 @@ function informeHTML(){
     const svg=informeMapaSVG().replace('<svg ','<svg class="mapa" '), mn=Math.min(...rows.map(r=>r[1].rac).filter(x=>x>0)), mx=rows[0][1].rac;
     const ramp=[0,.5,1].map(f=>{const c=mRamp(f);return `rgb(${c[0]},${c[1]},${c[2]})`;}).join(',');
     const t1=rows[0], top3=rows.slice(0,3).reduce((a,r)=>a+r[1].rac,0)/d.totRac*100, top5=rows.slice(0,5).reduce((a,r)=>a+r[1].rac,0)/d.totRac*100;
-    const cmax=rows.filter(r=>r[1].rac&&r[1].fin).sort((a,b)=>(b[1].fin/b[1].rac)-(a[1].fin/a[1].rac))[0], cmin=rows.filter(r=>r[1].rac&&r[1].fin).sort((a,b)=>(a[1].fin/a[1].rac)-(b[1].fin/b[1].rac))[0];
+    const mMonto=d.finMes.map((v,i)=>v>0?i:-1).filter(i=>i>=0), racM=dp=>d.depMes&&d.depMes[dp]?mMonto.reduce((t,k)=>t+d.depMes[dp][k],0):(d.depAgg[dp]||{}).rac, cpr=r=>{ const rm=racM(r[0]); return rm&&r[1].fin?r[1].fin/rm:null; };
+    const cc=rows.filter(r=>cpr(r)).sort((a,b)=>cpr(b)-cpr(a)), cmax=cc[0], cmin=cc[cc.length-1];
     const aprox=d.munAgg.filter(mm=>!_MUNI_N[norm(mm.dep)+'|'+norm(mm.mun)]).length;
     notas.push(`En el mapa, cada comedor se ubica en el centro de su municipio; no representa la dirección exacta${aprox?` (${aprox} de ${d.munAgg.length} municipios no cuentan con coordenada propia y se ubican de forma aproximada)`:''}.`);
     let heat=''; if(d.depMes){ const idx=[]; d.fisMes.forEach((v,i)=>{ if(v>0) idx.push(i); }); const hr=Object.entries(d.depMes).map(([dp,a])=>[dp,a,idx.reduce((t,k)=>t+a[k],0)]).sort((a,b)=>b[2]-a[2]); const hm=Math.max(1,...hr.flatMap(r=>idx.map(k=>r[1][k])));
       heat=`<h3 style="break-before:page">Raciones por departamento y mes</h3><p>La intensidad del color refleja el volumen de raciones servidas en cada mes; permite identificar departamentos con crecimiento sostenido o con interrupciones.</p><table class="heat"><thead><tr><th style="text-align:left">Departamento</th>${idx.map(k=>`<th>${MESES[k]}</th>`).join('')}<th>Total</th></tr></thead><tbody>${hr.map(r=>`<tr><td class="l">${mTitle(r[0])}</td>${idx.map(k=>{ const v=r[1][k], a=v?0.10+0.88*(v/hm):0.04; return `<td style="background:rgba(15,108,189,${a.toFixed(2)});color:${a>0.55?'#fff':'#252423'}">${v?fmtK(v):'·'}</td>`; }).join('')}<td class="t">${fmtN(r[2])}</td></tr>`).join('')}</tbody></table>`; }
     sec('Ejecución territorial','Mapa y ranking por departamento',`
-      <p>La ejecución se distribuye en los 22 departamentos. <b>${mTitle(t1[0])}</b> es el de mayor volumen, con ${fmtN(t1[1].rac)} raciones (${rpct(t1[1].rac,d.totRac)} del total); los tres primeros concentran el <b>${top3.toFixed(1)}%</b> y los cinco primeros el ${top5.toFixed(1)}%.${cmax&&cmin?` El costo por ración más alto se observa en ${mTitle(cmax[0])} (Q ${(cmax[1].fin/cmax[1].rac).toFixed(2)}) y el más bajo en ${mTitle(cmin[0])} (Q ${(cmin[1].fin/cmin[1].rac).toFixed(2)}).`:''}</p>
-      <figure class="fig"><div class="t">Mapa de Guatemala · raciones servidas por departamento, 2026</div>${svg}<div class="maplegend"><span>Menos raciones</span><i style="background:linear-gradient(90deg,${ramp})"></i><span>Más raciones (${fmtK(mn)} a ${fmtK(mx)})</span></div><figcaption>Los departamentos pequeños se identifican con insignias numeradas y su referencia al margen. Territorio en reclamo representado únicamente con fines ilustrativos.</figcaption></figure>
+      <p>La ejecución se distribuye en los 22 departamentos. <b>${mTitle(t1[0])}</b> es el de mayor volumen, con ${fmtN(t1[1].rac)} raciones (${rpct(t1[1].rac,d.totRac)} del total); los tres primeros concentran el <b>${top3.toFixed(1)}%</b> y los cinco primeros el ${top5.toFixed(1)}%.${cmax&&cmin?` El costo por ración calculado varía entre Q ${cpr(cmin).toFixed(2)} (${mTitle(cmin[0])}) y Q ${cpr(cmax).toFixed(2)} (${mTitle(cmax[0])}); estas diferencias pueden deberse a la modalidad de los comedores, al tipo de contratación o a desfases de registro, y no deben interpretarse por sí solas como diferencias de eficiencia.`:''}</p>
+      <figure class="fig"><div class="t">Mapa de Guatemala · raciones servidas por departamento, 2026</div>${svg}<div class="maplegend"><span>Menos raciones</span><i style="background:linear-gradient(90deg,${ramp})"></i><span>Más raciones (${fmtK(mn)} a ${fmtK(mx)})</span></div><figcaption>Los departamentos pequeños se identifican con insignias numeradas y su referencia al margen. El territorio de Belice, objeto de reclamo histórico, se muestra solo con fines ilustrativos.</figcaption></figure>
       <h3 style="break-before:page">Detalle por departamento</h3>
-      <table><thead><tr><th>#</th><th>Departamento</th><th class="n">Comedores activos</th><th>Raciones servidas</th><th class="n">% del total</th><th class="n">Monto ejecutado</th><th class="n">Q por ración</th></tr></thead><tbody>
-      ${rows.map((r,i)=>{ const v=r[1]; return `<tr><td>${i+1}</td><td><b>${mTitle(r[0])}</b></td><td class="n">${(ca[r[0]]||{}).total||'—'}</td><td style="white-space:nowrap"><span class="bar" style="width:${Math.max(1,v.rac/mxr*13).toFixed(1)}mm"></span>${fmtN(v.rac)}</td><td class="n">${rpct(v.rac,d.totRac)}</td><td class="n">${fmtQ(v.fin)}</td><td class="n">${v.rac&&v.fin?'Q '+(v.fin/v.rac).toFixed(2):'—'}</td></tr>`; }).join('')}
-      <tr class="tot"><td></td><td>Total nacional</td><td class="n">${q?q.comedores.length:'—'}</td><td>${fmtN(d.totRac)}</td><td class="n">100%</td><td class="n">${fmtQ(d.totFin)}</td><td class="n"></td></tr></tbody></table>${heat}`);
+      <table><thead><tr><th>#</th><th>Departamento</th><th class="n">Comedores activos</th><th>Raciones servidas</th><th class="n">% del total</th><th class="n">Monto ejecutado</th><th class="n">Q por ración*</th></tr></thead><tbody>
+      ${rows.map((r,i)=>{ const v=r[1]; return `<tr><td>${i+1}</td><td><b>${mTitle(r[0])}</b></td><td class="n">${(ca[r[0]]||{}).total||'—'}</td><td style="white-space:nowrap"><span class="bar" style="width:${Math.max(1,v.rac/mxr*13).toFixed(1)}mm"></span>${fmtN(v.rac)}</td><td class="n">${rpct(v.rac,d.totRac)}</td><td class="n">${fmtQ(v.fin)}</td><td class="n">${cpr(r)?'Q '+cpr(r).toFixed(2):'—'}</td></tr>`; }).join('')}
+      <tr class="tot"><td></td><td>Total nacional</td><td class="n">${q?q.comedores.length:'—'}</td><td>${fmtN(d.totRac)}</td><td class="n">100%</td><td class="n">${fmtQ(d.totFin)}</td><td class="n"></td></tr></tbody></table>
+      <div class="note">* Monto ejecutado dividido entre las raciones de los meses que tienen monto registrado (${lista(mMonto.map(mesN))}). Los comedores activos corresponden a ${mc?mesN(mc.idx):'la cuota'} (Cuota por Semana), mientras que raciones y montos son acumulados del año (Ejecución DPS); los universos no son idénticos.</div>${heat}`);
+  }
+
+  /* ---------- 4b. Departamento seleccionado en el mapa (solo informe de la sección Mapa) ---------- */
+  if(only==='mapa'&&depSel&&d&&mapDepTot[depSel]){
+    const dep=depSel, t=mapDepTot[dep], ca=comActivosDe(dep), coms=mapComedores.filter(c=>norm(c.dep)===norm(dep)).sort((a,b)=>b.rac-a.rac);
+    const rk=Object.entries(mapDepTot).sort((a,b)=>b[1].rac-a[1].rac), pos=rk.findIndex(x=>x[0]===dep)+1, totN=rk.reduce((a,x)=>a+x[1].rac,0);
+    const top=coms.slice(0,10), img=top.length?rBars(top.map(c=>c.com),top.map(c=>c.rac),RP.blue,v=>fmtK(v),680,Math.max(130,top.length*26+40),{horiz:true}):'';
+    sec('Detalle del departamento · '+mTitle(dep),'Departamento seleccionado en el mapa',`
+      <p><b>${mTitle(dep)}</b> ocupa el lugar <b>${pos} de ${rk.length}</b> por raciones servidas en 2026: ${fmtN(t.rac)} raciones (${rpct(t.rac,totN)} del total nacional) y una ejecución de ${fmtQ(t.mon)}. Cuenta con <b>${ca.total} comedores activos</b> (${ca.fijo} fijos y ${ca.movil} móviles) según la Cuota por Semana.</p>
+      <div class="kpis">${kpi('Raciones 2026',fmtN(t.rac),rpct(t.rac,totN)+' del total nacional',RP.blue)}${kpi('Monto ejecutado',fmtQk(t.mon),fmtQ(t.mon),RP.yellow)}${kpi('Comedores activos',String(ca.total),ca.fijo+' fijos · '+ca.movil+' móviles',RP.orange)}</div>
+      ${img?`<figure class="fig"><div class="t">Municipios con mayor volumen de raciones</div><img src="${img}"></figure>`:''}
+      ${coms.length?`<h3>Detalle por municipio</h3><table><thead><tr><th>Comedor / municipio</th><th>Modalidad</th><th class="n">Raciones 2026</th><th class="n">Monto ejecutado</th></tr></thead><tbody>${coms.map(c=>`<tr><td><b>${esc(c.com)}</b></td><td>${isMovil(c.mod)?'Móvil':'Fijo'}</td><td class="n">${fmtN(c.rac)}</td><td class="n">${fmtQ(c.mon)}</td></tr>`).join('')}</tbody></table><div class="note">La ubicación de cada comedor en el mapa corresponde al centro de su municipio.</div>`:'<p>No hay comedores localizados para este departamento.</p>'}`);
   }
 
   /* ---------- 5. Ejecución del mes (cuota) ---------- */
   if(s){
-    const lb=s.semanas.map(x=>x.label), ra=rBars(lb,s.semanas.map(x=>x.rac),RP.blue,v=>fmtK(v),340,200,{colors:s.semanas.map(x=>x.tipo==='servida'?RP.blue:RP.orange)}), fi=rBars(lb,s.semanas.map(x=>x.fin),RP.aqua,v=>fmtQk(v),340,200,{colors:s.semanas.map(x=>x.tipo==='servida'?RP.aqua:RP.yellow)});
+    const lb=s.semanas.map(x=>x.label), ra=rBars(lb,s.semanas.map(x=>x.rac),RP.blue,v=>fmtK(v),340,165,{colors:s.semanas.map(x=>x.tipo==='servida'?RP.blue:RP.orange)}), fi=rBars(lb,s.semanas.map(x=>x.fin),RP.aqua,v=>fmtQk(v),340,165,{colors:s.semanas.map(x=>x.tipo==='servida'?RP.aqua:RP.yellow)});
     let comedores='';
     if(q){ const top=q.comedores.slice().sort((a,b)=>b.ejec-a.ejec).slice(0,10), all=q.comedores.reduce((a,c)=>a+c.ejec,0), t10=top.reduce((a,c)=>a+c.ejec,0);
-      const dm=rDonut(['Fijo','Móvil'],[q.mFijo,q.mMovil],[RP.blue,RP.orange],220,175), ck=Object.keys(q.contr), dc=rDonut(ck.map(k=>k.charAt(0)+k.slice(1).toLowerCase()),ck.map(k=>q.contr[k]),[RP.blue,RP.orange,RP.aqua,RP.yellow].slice(0,ck.length),220,175), dd=rDonut(['Desayuno','Almuerzo'],[q.totDes,q.totAlm],[RP.yellow,RP.blue],220,175);
-      const tp=rBars(top.map(c=>c.com+' · '+mTitle(c.dep)),top.map(c=>c.ejec),RP.aqua,v=>fmtQk(v),680,235,{horiz:true});
-      comedores=`<h3>Comedores y modalidades</h3><p>La red está conformada por <b>${q.comedores.length} comedores</b>: ${q.mFijo} fijos (${rpct(q.mFijo,q.comedores.length)}) y ${q.mMovil} móviles (${rpct(q.mMovil,q.comedores.length)}). Por modalidad de contratación, ${ck.map(k=>`${q.contr[k]} corresponden a ${k.toLowerCase()}`).join(', ')}. Del total de raciones servidas, ${rpct(q.totDes,q.totDes+q.totAlm)} fueron desayunos y ${rpct(q.totAlm,q.totDes+q.totAlm)} almuerzos.</p>
+      const dm=rDonut(['Fijo','Móvil'],[q.mFijo,q.mMovil],[RP.blue,RP.orange],220,150), ck=Object.keys(q.contr), dc=rDonut(ck.map(k=>{const t=nomContr(k);return t.charAt(0).toUpperCase()+t.slice(1);}),ck.map(k=>q.contr[k]),[RP.blue,RP.orange,RP.aqua,RP.yellow].slice(0,ck.length),220,150), dd=rDonut(['Desayuno','Almuerzo'],[q.totDes,q.totAlm],[RP.yellow,RP.blue],220,150);
+      const tp=rBars(top.map(c=>c.com+' · '+mTitle(c.dep)),top.map(c=>c.ejec),RP.aqua,v=>fmtQk(v),680,205,{horiz:true});
+      comedores=`<h3>Comedores y modalidades</h3><p>La red está conformada por <b>${q.comedores.length} comedores</b>: ${q.mFijo} fijos (${rpct(q.mFijo,q.comedores.length)}) y ${q.mMovil} móviles (${rpct(q.mMovil,q.comedores.length)}). Por modalidad de contratación, ${lista(ck.map(k=>`${q.contr[k]} operan con ${nomContr(k)}`))}. Del total de raciones servidas, ${rpct(q.totDes,q.totDes+q.totAlm)} fueron desayunos y ${rpct(q.totAlm,q.totDes+q.totAlm)} almuerzos.</p>
         <div class="row3"><figure class="fig"><div class="t">Modalidad de comedor</div><img src="${dm}"></figure><figure class="fig"><div class="t">Contratación</div><img src="${dc}"></figure><figure class="fig"><div class="t">Desayuno / almuerzo</div><img src="${dd}"></figure></div>
         <figure class="fig"><div class="t">Diez comedores con mayor ejecución (Q)</div><img src="${tp}"><figcaption>Los diez primeros concentran ${rpct(t10,all)} de la ejecución del mes.</figcaption></figure>`; }
-    const nota1=s.nota1?` La primera semana incluye: ${esc(s.nota1.replace(/^1a\.\s*/i,'').toLowerCase())}, por lo que su volumen es mayor al de las demás.`:'';
-    if(s.nota1) notas.push(`Cuota por Semana: ${esc(s.nota1)}. El volumen de la primera semana no es comparable con el de las siguientes.`);
-    sec('Ejecución del mes en curso','Cuota por Semana'+(mc?' · '+mesCap(mc.idx)+' '+yr:''),`
-      <p>En ${mc?mesN(mc.idx):'el mes'} se registraron <b>${fmtN(s.servRac)} raciones servidas</b> de ${fmtN(s.totRac)} proyectadas (${rpct(s.servRac,s.totRac)}) y una ejecución de <b>${fmtQ(s.servFin)}</b> (${rpct(s.servFin,s.totFin)} de lo proyectado). El costo medio por ración fue de <b>Q ${s.precioMedio.toFixed(2)}</b>.${nota1}</p>
+    const r1=q&&q.rangos&&q.rangos[0]&&(q.rangos[0].match(/\(([^)]*)\)/)||[])[1], pend=s.nota1&&/PENDIENTE/i.test(s.nota1);
+    const nota1=` La primera semana abarca un período más largo${r1?` (${esc(r1.replace(/^del /i,'del '))})`:''}${pend?' e incluye además raciones del mes anterior pendientes de liquidar':''}, por lo que su volumen no es comparable con el de las semanas siguientes.`;
+    if(true) notas.push(`Cuota por Semana: la primera semana abarca un período más largo${r1?` (${esc(r1)})`:''}${pend?' e incluye raciones del mes anterior pendientes de liquidar':''}; su volumen no es comparable con el de las siguientes.`);
+    const cuotaVsDps=(d&&mc&&lastM>=0&&lastM!==mc.idx&&d.fisMes[lastM]>0)?` Como referencia, frente al último mes de Ejecución DPS (${mesN(lastM)}: ${fmtN(d.fisMes[lastM])} raciones), la cuota representa una variación de ${((s.servRac-d.fisMes[lastM])/d.fisMes[lastM]*100).toFixed(1)}%; las fuentes son distintas y la comparación es solo indicativa.`:'';
+    sec('Ejecución mensual según Cuota por Semana','Mes de la cuota'+(mc?' · '+mesCap(mc.idx)+' '+yr:''),`
+      <p>Según la Cuota por Semana, en ${mc?mesN(mc.idx):'el mes'} se consignan <b>${fmtN(s.servRac)} raciones</b> y una ejecución de <b>${fmtQ(s.servFin)}</b>${s.totRac!==s.servRac?`, de ${fmtN(s.totRac)} raciones proyectadas (${rpct(s.servRac,s.totRac)})`:''}. El costo medio por ración es de <b>Q ${s.precioMedio.toFixed(2)}</b>. La cuota es un cálculo mensual por semanas y no equivale a una ejecución contable cerrada.${nota1}${cuotaVsDps}</p>
       <div class="row2"><figure class="fig"><div class="t">Raciones por semana</div><img src="${ra}"></figure><figure class="fig"><div class="t">Monto por semana (Q)</div><img src="${fi}"></figure></div>${comedores}`);
   }
 
   /* ---------- 6. Perfil de la población ---------- */
   if(cl&&cl.total){
-    const t=cl.total, dimBlock=(dim,titulo)=>{ const es=dimEntries(t,dim), tot=es.reduce((a,e)=>a+e.value,0)||1, top=es.slice().sort((a,b)=>b.value-a.value)[0];
-      const sent= dim==='sexo'?`${pctTxt(top.value/tot*100)} de las raciones fue para ${top.name==='Femenino'?'mujeres':'hombres'}.`: dim==='edad'?`El grupo más atendido es ${fr('edad',top.name).toLowerCase()} (${pctTxt(top.value/tot*100)}).`:(()=>{const ind=(t.etnia.Maya||0)+(t.etnia.Xinca||0)+(t.etnia['Garífuna']||0);return `${pctTxt(ind/tot*100)} de las raciones (${fmtN(ind)}) fue para pueblos indígenas y afrodescendiente.`;})();
+    const perAll=[cl.total,...cl.periodos], t=(clasPeriod&&perAll.find(x=>x.label===clasPeriod.label))||cl.total, perLbl=t.label;
+    const dimBlock=(dim,titulo)=>{ const es=dimEntries(t,dim), tot=es.reduce((a,e)=>a+e.value,0)||1, top=es.slice().sort((a,b)=>b.value-a.value)[0];
+      const sent= dim==='sexo'?`${pctTxt(top.value/tot*100)} de las raciones fue para ${top.name==='Femenino'?'mujeres':'hombres'}.`: dim==='edad'?`El grupo más atendido es ${fr('edad',top.name).toLowerCase()} (${pctTxt(top.value/tot*100)}).`:(()=>{const ind=(t.etnia.Maya||0)+(t.etnia.Xinca||0)+(t.etnia['Garífuna']||0);return `${pctTxt(ind/tot*100)} de las raciones (${fmtN(ind)}) fue para los pueblos maya, xinca y garífuna.`;})();
       return `<div class="dim"><h4>${titulo}</h4><div class="sent">${sent}</div><div class="stackbar">${es.map(e=>`<i style="width:${(e.value/tot*100).toFixed(2)}%;background:${e.color}"></i>`).join('')}</div><table><thead><tr><th>Categoría</th><th class="n">Raciones</th><th class="n">%</th></tr></thead><tbody>${es.slice().sort((a,b)=>b.value-a.value).map(e=>`<tr><td><span class="bar" style="width:2.2mm;background:${e.color}"></span>${fr(dim,e.name)}</td><td class="n">${fmtN(e.value)}</td><td class="n">${pctTxt(e.value/tot*100)}</td></tr>`).join('')}</tbody></table></div>`; };
     let trend=''; if(cl.periodos.length>=2){ const cats=Object.keys(CLAS_COLORS.edad); trend=`<h3>Composición por grupo de edad en cada período</h3><figure class="fig"><img src="${rStack(cl.periodos.map(x=>x.label),cats.map(c=>({label:fr('edad',c),color:CLAS_COLORS.edad[c],data:cl.periodos.map(x=>x.raciones?(x.edad[c]||0)/x.raciones*100:0)})),680,250,true)}"><figcaption>Cada columna suma 100% de las raciones del período.</figcaption></figure>`; }
-    sec('Perfil de la población atendida','Clasificador Global',`
-      <p>Del total de <b>${fmtN(t.raciones)} raciones</b> clasificadas, la información permite caracterizar a quién se sirvió según sexo, grupo de edad y pueblo de pertenencia. Estas cifras corresponden a raciones, no a personas únicas, por lo que una misma persona puede estar contada más de una vez.</p>
+    sec('Perfil de las raciones servidas','Clasificador Global · período: '+perLbl,`
+      <p>En el período <b>${esc(perLbl)}</b> se clasificaron <b>${fmtN(t.raciones)} raciones</b>; la información permite caracterizar a quién se sirvió según sexo, grupo de edad y pueblo de pertenencia. Estas cifras corresponden a raciones, no a personas únicas, por lo que una misma persona puede estar contada más de una vez.</p>
       <div class="row2"><div>${dimBlock('sexo','Sexo')}${dimBlock('edad','Grupo de edad')}</div><div>${dimBlock('etnia','Pueblo de pertenencia')}</div></div>${trend}`);
   }
 
   /* ---------- 7. Pagos a proveedores ---------- */
   if(pg){
     const cumpl=pg.totalProy?pg.totalPag/pg.totalProy*100:0, worst=pg.providers.filter(x=>x.proy>0).sort((a,b)=>(b.nopag/b.proy)-(a.nopag/a.proy))[0], big=pg.providers.slice().sort((a,b)=>b.nopag-a.nopag)[0];
-    const mes=rStack(pg.months.map(m=>m.name),[{label:'Pagadas',color:RP.aqua,data:pg.months.map(m=>m.pag)},{label:'Pendientes',color:RP.orange,data:pg.months.map(m=>m.nopag)}],680,250,false);
-    sec('Pagos a proveedores','Raciones pagadas y pendientes',`
-      <p>De <b>${fmtN(pg.totalProy)} raciones proyectadas</b> en el período, <b>${fmtN(pg.totalPag)}</b> han sido pagadas (${cumpl.toFixed(1)}%) y <b>${fmtN(pg.totalNopag)}</b> permanecen pendientes de pago (${(100-cumpl).toFixed(1)}%).${worst?` La mayor proporción pendiente corresponde a ${esc(worst.name)} (${rpct(worst.nopag,worst.proy)} de sus raciones proyectadas)${big&&big.name!==worst.name?`, mientras que el mayor monto absoluto pendiente es de ${esc(big.name)} (${fmtN(big.nopag)} raciones)`:''}.`:''}</p>
-      <div class="kpis">${kpi('Raciones proyectadas',fmtN(pg.totalProy),'',RP.blue)}${kpi('Pagadas',fmtN(pg.totalPag),cumpl.toFixed(1)+'% de lo proyectado',RP.aqua)}${kpi('Pendientes de pago',fmtN(pg.totalNopag),(100-cumpl).toFixed(1)+'%',RP.orange)}</div>
-      <figure class="fig"><div class="t">Raciones pagadas y pendientes por mes</div><img src="${mes}"></figure>
-      <h3>Situación por proveedor</h3><table><thead><tr><th>Proveedor</th><th class="n">Proyectadas</th><th class="n">Pagadas</th><th class="n">Pendientes</th><th class="n">% pagado</th></tr></thead><tbody>
+    const mes=rStack(pg.months.map(m=>m.name),[{label:'Pagadas',color:RP.aqua,data:pg.months.map(m=>m.pag)},{label:'No pagadas',color:RP.orange,data:pg.months.map(m=>m.nopag)}],680,250,false);
+    sec('Registro de pagos a proveedores','Raciones pagadas y no pagadas',`
+      <p>Según la hoja de Raciones Semestrales, de <b>${fmtN(pg.totalProy)} raciones proyectadas</b>${pgPeriodo?' entre '+pgPeriodo.replace(' a ',' y '):''}, <b>${fmtN(pg.totalPag)}</b> figuran como pagadas (${cumpl.toFixed(1)}%) y <b>${fmtN(pg.totalNopag)}</b> como no pagadas (${(100-cumpl).toFixed(1)}%).${worst?` La mayor proporción no pagada corresponde a ${esc(worst.name)} (${rpct(worst.nopag,worst.proy)} de sus raciones proyectadas)${big&&big.name!==worst.name?`, y la mayor cantidad de raciones no pagadas a ${esc(big.name)} (${fmtN(big.nopag)})`:''}.`:''}</p>
+      <div class="callout"><b>Alcance de la información.</b> La fuente no distingue entre raciones aún por pagar y raciones proyectadas que no llegaron a prestarse. Las raciones pagadas${d?` (${fmtN(pg.totalPag)}) se comparan con las servidas según Ejecución DPS (${fmtN(d.totRac)}): ${pg.totalPag>=d.totRac?'son '+fmtN(pg.totalPag-d.totRac)+' más':'son '+fmtN(d.totRac-pg.totalPag)+' menos'}, diferencia pendiente de conciliar con las áreas responsables`:''}.</div>
+      <div class="kpis">${kpi('Raciones proyectadas',fmtN(pg.totalProy),'',RP.blue)}${kpi('Registradas como pagadas',fmtN(pg.totalPag),cumpl.toFixed(1)+'% de lo proyectado',RP.aqua)}${kpi('Registradas como no pagadas',fmtN(pg.totalNopag),(100-cumpl).toFixed(1)+'%',RP.orange)}</div>
+      <figure class="fig"><div class="t">Raciones pagadas y no pagadas por mes</div><img src="${mes}"></figure>
+      <h3>Situación por proveedor</h3><table><thead><tr><th>Proveedor</th><th class="n">Proyectadas</th><th class="n">Pagadas</th><th class="n">No pagadas</th><th class="n">% pagado</th></tr></thead><tbody>
       ${pg.providers.map(p=>`<tr><td><b>${esc(p.name)}</b></td><td class="n">${fmtN(p.proy)}</td><td class="n">${fmtN(p.pag)}</td><td class="n">${fmtN(p.nopag)}</td><td class="n">${rpct(p.pag,p.proy)}</td></tr>`).join('')}
       <tr class="tot"><td>Total</td><td class="n">${fmtN(pg.totalProy)}</td><td class="n">${fmtN(pg.totalPag)}</td><td class="n">${fmtN(pg.totalNopag)}</td><td class="n">${cumpl.toFixed(1)}%</td></tr></tbody></table>
       <div class="note">Las cifras corresponden a raciones, no a montos en quetzales.</div>`);
@@ -2779,49 +2813,70 @@ function informeHTML(){
 
   /* ---------- 8. Notas sobre la información ---------- */
   {
+    if(d) notas.push(`El monto ejecutado corresponde a la suma por municipio de la hoja Comedores del archivo de Ejecución DPS; este informe no distingue entre monto devengado y pagado, pues la fuente no lo indica.`);
+    if(d&&lastM>=0) notas.push(`La información de Ejecución DPS llega hasta ${mesN(lastM)} de ${yr} y este informe se emite el ${fmtFechaLarga(now)}; por ello no incluye los meses posteriores al corte.`);
     if(d&&q&&q.comedores.length!==d.nCom) notas.push(`El número de comedores difiere entre archivos: ${q.comedores.length} en Cuota por Semana (comedores activos en el mes) y ${d.nCom} en Ejecución DPS (comedores con ejecución durante el año). Son universos distintos y cada cifra debe citarse con su fuente.`);
     if(mc&&d&&!(d.fisMes[mc.idx]>0)) notas.push(`Los archivos no cubren el mismo corte: Cuota por Semana corresponde a ${mesN(mc.idx)} y Ejecución DPS llega hasta ${mesN(lastM)}. Los indicadores «del mes» y los «acumulados» no corresponden al mismo período.`);
-    let conc=''; if(editorMode){ const ch=buildChecks(); conc=`<h3>Verificaciones entre archivos (uso interno)</h3><table><thead><tr><th>Verificación</th><th>Resultado</th></tr></thead><tbody>${ch.map(k=>`<tr><td style="width:38%"><b>${k.lvl==='ok'?'✓ ':k.lvl==='warn'?'! ':'i '}</b>${esc(k.t)}</td><td>${esc(k.det)}</td></tr>`).join('')}</tbody></table>`; }
-    const fuentes=SLOTS.map(sl=>{ const m=metaOf(sl); if(!m) return ''; return `<tr><td><b>${esc(SRC_DEF[sl].label)}</b></td><td>${esc(m.name)}${m.sheet?' · hoja '+esc(m.sheet):''}</td><td>${m.mes?esc(m.mes.texto):(sl==='dps'&&lastM>=0?'hasta '+mesN(lastM):'—')}</td><td>${m.modified?fmtFecha(m.modified):'—'}</td></tr>`; }).join('');
+    let conc=''; if(editorMode){ const ch=buildChecks(); conc=`<h3 style="break-before:page">Anexo · Verificaciones entre archivos (uso interno)</h3><table><thead><tr><th>Verificación</th><th>Resultado</th></tr></thead><tbody>${ch.map(k=>`<tr><td style="width:38%"><b>${k.lvl==='ok'?'✓ ':k.lvl==='warn'?'! ':'i '}</b>${esc(k.t)}</td><td>${esc(k.det)}</td></tr>`).join('')}</tbody></table>`; }
+    const fuentes=SLOTS.map(sl=>{ const m=metaOf(sl); if(!m||!m.recognized) return ''; return `<tr><td><b>${esc(SRC_DEF[sl].label)}</b></td><td>${esc(m.name)}${m.sheet?' · hoja '+esc(m.sheet):''}</td><td>${m.mes?esc(m.mes.texto):(sl==='dps'&&lastM>=0?'hasta '+mesN(lastM):'—')}</td><td>${m.modified?fmtFecha(m.modified):'—'}</td></tr>`; }).join('');
     sec('Notas sobre la información y metodología','Fuentes, alcance y limitaciones',`
-      <h3>Fuentes de información</h3><table><thead><tr><th>Fuente</th><th>Archivo y hoja</th><th>Período</th><th>Última modificación</th></tr></thead><tbody>${fuentes}</tbody></table>
-      <p>Las cifras de este informe provienen de los libros de Excel oficiales cargados en el Tablero de Ejecución y no han sido modificadas. Los porcentajes, promedios y comparaciones se calculan automáticamente a partir de esas cifras.</p>
+      <h3>Fuentes de información</h3><table><thead><tr><th>Fuente</th><th>Archivo y hoja</th><th>Período</th><th>Archivo cargado el</th></tr></thead><tbody>${fuentes}</tbody></table>
+      <p>Las cifras de este informe provienen de los libros de Excel oficiales cargados en el Tablero de Ejecución y no se han alterado respecto de dichos archivos. Los porcentajes, promedios, variaciones y comparaciones son cálculos propios del tablero a partir de esas cifras.</p>
       <h3>Consideraciones para la interpretación</h3>${notas.length?`<ul class="hallazgos">${notas.map(n=>`<li class="warn">${n}</li>`).join('')}</ul>`:'<p>No se identificaron limitaciones relevantes con la información disponible.</p>'}${conc}
-      <h3>Glosario</h3><dl class="g"><dt>Ración</dt><dd>Un desayuno o un almuerzo servido a una persona.</dd><dt>Ejecución física</dt><dd>Cantidad de raciones servidas respecto de las previstas.</dd><dt>Ejecución financiera</dt><dd>Quetzales ejecutados respecto de lo previsto.</dd><dt>Meta anual</dt><dd>Total de raciones (o monto) previsto para el año.</dd><dt>Ritmo lineal esperado</dt><dd>Proporción del año transcurrida; sirve de referencia para evaluar el avance.</dd><dt>Comedor fijo / móvil</dt><dd>Fijo: funciona en un local. Móvil: se traslada a distintas comunidades.</dd><dt>Costo por ración</dt><dd>Quetzales ejecutados divididos entre raciones servidas.</dd></dl>`);
+      <div style="break-inside:avoid"><h3>Glosario</h3><dl class="g"><dt>Ración</dt><dd>Un desayuno o un almuerzo servido a una persona.</dd><dt>Ejecución física</dt><dd>Cantidad de raciones servidas respecto de las previstas.</dd><dt>Ejecución financiera</dt><dd>Quetzales ejecutados respecto de lo previsto; el porcentaje depende de la base utilizada (presupuesto vigente o ejecución vigente).</dd><dt>Cuota</dt><dd>Cálculo mensual de raciones y montos por semana (Cuota por Semana); no equivale a una ejecución contable cerrada.</dd><dt>Meta anual</dt><dd>Total de raciones (o monto) previsto para el año.</dd><dt>Ritmo lineal de referencia</dt><dd>Proporción del año transcurrida; es una referencia simple que no considera la estacionalidad ni una programación mensual.</dd><dt>Comedor fijo / móvil</dt><dd>Fijo: funciona en un local. Móvil: se traslada a distintas comunidades.</dd><dt>Costo por ración</dt><dd>Quetzales ejecutados divididos entre raciones servidas.</dd></dl></div>`);
   }
 
-  const toc=secs.map(x=>`<li><div>${esc(x.titulo)}<small>${esc(x.sub)}</small></div></li>`).join('');
-  const body=secs.map((x,i)=>`<section class="sec${x.nobreak?' nobreak':''}"><h2><em>${String(i+1).padStart(2,'0')}</em>${esc(x.titulo)}</h2>${x.html}</section>`).join('');
+  const grupo=only?SEC_TAB[only]:null;
+  const secsF=secs.filter(x=>grupo?(grupo.includes(x.key)||x.key==='notas'):x.key!=='depto');
+  if(!secsF.length) secsF.push(secs[secs.length-1]);
+  const toc=secsF.map(x=>`<li><div>${esc(x.titulo)}<small>${esc(x.sub)}</small></div></li>`).join('');
+  const body=secsF.map((x,i)=>`<section class="sec${x.nobreak?' nobreak':''}"><h2><em>${String(i+1).padStart(2,'0')}</em>${esc(x.titulo)}</h2>${x.html}</section>`).join('');
   const corte=corteTexto();
-  return `<!doctype html><html lang="es"><head><meta charset="utf-8"><title>Informe Ejecutivo · Comedores Sociales ${yr}</title>
+  return `<!doctype html><html lang="es"><head><meta charset="utf-8"><title>Informe Ejecutivo · Comedores Sociales ${yr}${only?' · '+esc(TAB_LABEL[only]):''}</title>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"><style>${INFORME_CSS}</style></head><body>
-<section class="cover"><div class="logo">${logo?`<img src="${logo}" alt="Ministerio de Desarrollo Social">`:''}</div>
+<section class="cover">${editorMode?'<div class="interno">USO INTERNO</div>':''}<div class="logo">${logo?`<img src="${logo}" alt="Ministerio de Desarrollo Social">`:''}</div>
   <div class="org">Subdirección de Comedores · Dirección de Prevención Social · Viceministerio de Protección Social</div>
-  <h1>Informe Ejecutivo<br>Programa Comedores Sociales</h1><h2>Ejecución física y financiera ${yr}</h2>
-  <div class="meta"><div><b>Última actualización de los datos</b><span>${fmtFechaLarga(u.date)}</span></div><div><b>Fecha de emisión del informe</b><span>${fmtFechaLarga(now)}</span></div><div><b>Corte de la información</b><span style="font-size:10pt">${esc(corte||'—')}</span></div><div><b>Cobertura</b><span>${q?q.comedores.length+' comedores · ':''}22 departamentos</span></div></div>
-  <div class="legal">Documento generado automáticamente por el Tablero de Ejecución del Ministerio de Desarrollo Social a partir de los archivos oficiales cargados. Las cifras no han sido modificadas. Territorio en reclamo representado únicamente con fines ilustrativos.</div></section>
+  <h1>Informe Ejecutivo<br>Programa Comedores Sociales</h1><h2>${only?'Sección: '+esc(TAB_LABEL[only]):'Ejecución física y financiera '+yr}</h2>
+  <div class="meta"><div><b>Última actualización de los datos</b><span>${fmtFechaLarga(u.date)}</span></div><div><b>Fecha de emisión del informe</b><span>${fmtFechaLarga(now)}</span></div><div><b>Corte de la información</b><span style="font-size:10pt">${esc(corte||'—')}</span></div><div><b>Alcance del informe</b><span>${only?'Sección «'+esc(TAB_LABEL[only])+'»'+(only==='clasif'&&clasPeriod?' · '+esc(clasPeriod.label):'')+(only==='mapa'&&depSel?' · '+esc(mTitle(depSel)):''):'Informe completo'}</span></div><div><b>Cobertura</b><span>${[q?q.comedores.length+' comedores':'',d?'22 departamentos':''].filter(Boolean).join(' · ')||'—'}</span></div></div>
+  <div class="legal">Documento generado automáticamente por el Tablero de Ejecución del Ministerio de Desarrollo Social a partir de los archivos oficiales cargados. Las cifras no han sido modificadas. El territorio de Belice, objeto de reclamo histórico, se muestra solo con fines ilustrativos.</div></section>
 <section class="toc"><h2>Contenido</h2><ol>${toc}</ol><p class="note">Las secciones se generan según la información disponible; si un archivo no está cargado, la sección correspondiente se omite.</p></section>${body}</body></html>`;
 }
 
-async function generarInforme(){
+async function generarInforme(opts){
   const prev={f:FORCE_LIGHT}; FORCE_LIGHT=true; applyChartTheme();
-  try{ return informeHTML(); } finally { FORCE_LIGHT=prev.f; applyChartTheme(); }
+  try{ return informeHTML(opts); } finally { FORCE_LIGHT=prev.f; applyChartTheme(); }
 }
-async function imprimirInforme(){
+async function imprimirInforme(opts){
+  if(!state.dps&&!state.semana&&!state.clasificador&&!state.pagos){ alert('Aún no hay datos cargados para generar el informe. Cargue los archivos de Excel (o espere a que termine la carga) y vuelva a intentarlo.'); return; }
   const btn=$('#btn-print'), old=btn?btn.textContent:''; if(btn){ btn.textContent='Generando informe…'; btn.disabled=true; }
   try{
     await new Promise(r=>setTimeout(r,30));
-    const html=await generarInforme();
+    const html=await generarInforme(opts);
     const old=document.getElementById('informe-frame'); if(old) old.remove();
     const fr=document.createElement('iframe'); fr.id='informe-frame'; fr.setAttribute('aria-hidden','true');
     fr.style.cssText='position:fixed;right:0;bottom:0;width:0;height:0;border:0;visibility:hidden;'; document.body.appendChild(fr);
     const doc=fr.contentDocument; doc.open(); doc.write(html); doc.close();
-    const go=()=>{ try{ fr.contentWindow.focus(); fr.contentWindow.print(); }catch(e){ alert('No se pudo abrir la impresión: '+e); } };
+    const go=()=>{ try{ fr.contentWindow.onafterprint=()=>{ setTimeout(()=>{ const f=document.getElementById('informe-frame'); if(f) f.remove(); },300); }; fr.contentWindow.focus(); fr.contentWindow.print(); }catch(e){ alert('No se pudo abrir la impresión: '+e); } };
     const ready=(doc.fonts&&doc.fonts.ready?doc.fonts.ready:Promise.resolve()); await Promise.race([ready,new Promise(r=>setTimeout(r,2500))]);
     setTimeout(go,400);
   }catch(e){ console.error(e); alert('No se pudo generar el informe: '+e.message); }
   finally{ if(btn){ btn.textContent=old; btn.disabled=false; } }
 }
+
+/* ---- Menú del botón «Informe / PDF»: de esta sección o completo ---- */
+function cerrarMenuInforme(){ const m=document.getElementById('rep-menu'); if(m) m.remove(); }
+function abrirMenuInforme(btn){
+  if(document.getElementById('rep-menu')){ cerrarMenuInforme(); return; }
+  const m=document.createElement('div'); m.id='rep-menu'; const r=btn.getBoundingClientRect();
+  const lbl=TAB_LABEL[activeTab]||'esta sección';
+  const extra=activeTab==='clasif'&&clasPeriod?` · ${esc(clasPeriod.label)}`:activeTab==='mapa'&&mapCurDep?` · ${esc(mTitle(mapCurDep))}`:'';
+  m.innerHTML=`<button data-m="sec"><b>Informe de esta sección</b><span>${esc(lbl)}${extra}: lo que se muestra ahora</span></button><button data-m="all"><b>Informe completo</b><span>Todas las secciones, con portada e índice</span></button>`;
+  m.style.cssText=`position:fixed;top:${Math.round(r.bottom+6)}px;left:${Math.max(8,Math.round(Math.min(r.left,innerWidth-310)))}px;z-index:9998;`;
+  document.body.appendChild(m);
+  m.addEventListener('click',e=>{ const b=e.target.closest('button'); if(!b) return; cerrarMenuInforme(); imprimirInforme(b.dataset.m==='sec'?{only:activeTab}:{}); });
+  setTimeout(()=>{ document.addEventListener('click',cerrarMenuInforme,{once:true}); },0);
+}
+document.addEventListener('keydown',e=>{ if(e.key==='Escape') cerrarMenuInforme(); });
 
 window.mSeleccionarDep=mSeleccionarDep; window.mZoomComedor=mZoomComedor;
 document.addEventListener('DOMContentLoaded',init);
