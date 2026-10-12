@@ -648,6 +648,12 @@ html[data-theme="light"] .mfoot .mnote{background:#FAF9F8!important;border:1px d
 .mkey-h{font:700 1.15px Inter,sans-serif;letter-spacing:.7px;fill:var(--muted);}
 .mkey-t{font:600 1.7px Inter,sans-serif;fill:var(--txt);letter-spacing:.01em;} .mkey-v{font:600 1.5px Inter,sans-serif;font-variant-numeric:tabular-nums;fill:var(--muted);}
 .mkey-n{font:700 1.35px 'Space Grotesk',Inter,sans-serif;font-variant-numeric:tabular-nums;}
+
+.upd{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center;margin-top:7px;font-size:12px;color:var(--muted);}
+.upd b{color:var(--txt);font-weight:700;} .upd-t{display:inline-flex;align-items:center;padding:3px 10px;border-radius:999px;background:rgba(52,211,153,.12);color:#6EE7B7;border:1px solid rgba(52,211,153,.28);}
+.upd-t b{color:inherit;} .upd-c{color:var(--muted);} .upd-d{padding:3px 10px;border-radius:999px;background:rgba(251,191,36,.12);color:#FBBF24;border:1px solid rgba(251,191,36,.32);font-weight:600;}
+html[data-theme="light"] .upd-t{background:#DFF6DD;color:#107C10;border-color:#9FD89F;} html[data-theme="light"] .upd-d{background:#FFF4CE;color:#8A6D00;border-color:#F2C811;}
+body.present .upd{display:flex!important;}
 </style>
 </head>
 <body>
@@ -670,6 +676,7 @@ html[data-theme="light"] .mfoot .mnote{background:#FAF9F8!important;border:1px d
       <div class="eyebrow">Subdirección de Comedores · Dirección de Prevención Social · Viceministerio de Protección Social</div>
       <h1>Tablero de Ejecución — Comedores Sociales</h1>
       <div class="sub">Mapa nacional, indicadores y gráficas que se actualizan con los libros de Excel que cargue.</div>
+      <div class="upd" id="upd" aria-live="polite"></div>
     </div>
     <div class="spacer"></div>
     <div class="status">
@@ -2106,7 +2113,7 @@ function init(){
     if(n>0){ if(!editorMode) enterViewerMode(); else restoreFromStorage(); }   // sin editor → solo lectura; con editor, sus archivos cargados (borradores) tienen prioridad
     else { restoreFromStorage(); }             // sin publicar → borradores locales
     updateFeedStatus(); updateClearBtn(); updatePublishBtn(); renderActive();
-    if(PUBINFO){ const ft=document.querySelector('.foot'); if(ft){ const sp=document.createElement('span'); sp.style.cssText='display:block;margin-top:6px'; sp.innerHTML='<b>Datos publicados el</b> '+fmtFecha(PUBINFO.version)+'.'; ft.appendChild(sp); } }
+    renderUpdated();
   })();
 }
 
@@ -2154,6 +2161,7 @@ function registerSource(slot,wb,name,info){
     modified:info.modified||null, loadedAt:new Date(), sheets:wb.SheetNames.slice(), sheet:p&&p.sheet||null, sheetQ, sha:null,
     recognized:!!p, mes: slot==='semana'?detectMes(wb,[sheetQ,p&&p.sheet]):null };
   hashBuf(info.buf).then(h=>{ m.sha=h; if(typeof activeTab!=='undefined'&&activeTab==='fuentes') renderFuentes(); });
+  if(typeof renderUpdated==='function') renderUpdated();
 }
 function srcShort(slot){ const m=metaOf(slot); return m?m.name:SRC_DEF[slot].file.split('/').pop(); }
 
@@ -2212,7 +2220,9 @@ function buildChecks(){
   if(!C.length) add('info','Cargue los archivos para ver la conciliación','');
   return C;
 }
-const fmtFecha=d=>d?new Date(d).toLocaleString('es-GT',{dateStyle:'medium',timeStyle:'short'}):'—';
+const TZ_GT='America/Guatemala';
+const fmtFecha=d=>d?new Date(d).toLocaleString('es-GT',{dateStyle:'medium',timeStyle:'short',timeZone:TZ_GT}):'—';
+const fmtFechaLarga=d=>d?new Date(d).toLocaleString('es-GT',{dateStyle:'long',timeStyle:'short',timeZone:TZ_GT}):'—';
 function downloadBuf(name,buf,mime){ try{ const url=URL.createObjectURL(new Blob([buf],{type:mime||'application/octet-stream'}));
   const a=document.createElement('a'); a.href=url; a.download=name; document.body.appendChild(a); a.click(); setTimeout(()=>{URL.revokeObjectURL(url);a.remove();},150); }catch(e){ alert('No se pudo descargar: '+e); } }
 function downloadSource(slot){ const m=metaOf(slot); if(!m||!m.buf){ alert('No hay archivo en memoria para descargar.'); return; }
@@ -2380,7 +2390,7 @@ function renderResumen(){
       </tbody></table></div><div class="fx-note" style="margin-top:8px"><span class="srcchip" ${editorMode?'data-srcgo="dps"':'style="cursor:default;background:transparent"'} style="margin:0">${editorMode?'ⓘ ':'Fuente: '}${srcShort('dps')}</span> &nbsp;Comedores activos: ${srcShort('semana')}. Clic en las gráficas del siguiente apartado para el detalle.</div></div>`; }
 
   const cut=[ mes?`Cuota: ${mes.texto.replace(/^COMEDORES SOCIALES\s*/i,'').toLowerCase()}`:null, d?(()=>{const l=d.fisMes.reduce((a,v,i)=>v>0?i:a,-1);return l>=0?`DPS: hasta ${MESES_FULL[l].toLowerCase()} 2026`:null;})():null ].filter(Boolean).join(' · ');
-  host.innerHTML=HOWTO.resumen()+`<div class="ex-head"><h2>Resumen ejecutivo · Comedores Sociales 2026</h2><span class="cut">Corte de datos — ${cut||'según archivos cargados'} · Generado el ${new Date().toLocaleDateString('es-GT',{dateStyle:'long'})}</span></div>
+  host.innerHTML=HOWTO.resumen()+`<div class="ex-head"><h2>Resumen ejecutivo · Comedores Sociales 2026</h2><span class="cut">Corte de datos — ${cut||'según archivos cargados'} · Última actualización: <b style="color:var(--txt)">${fmtFechaLarga(lastUpdate().date)}</b></span></div>
     ${biBanner()}
     <div class="ex-grid"><div class="card"><h3>Hallazgos clave <span class="src">Generados con los datos cargados</span></h3><div class="ex-find" style="margin-top:12px">${F.join('')}</div></div>${pace||'<div></div>'}</div>
     ${tabla}${GLOSARIO}`;
@@ -2521,6 +2531,26 @@ function openPublishDialog(){
     }catch(e){ btn.disabled=false; st.className='st err';
       st.textContent= e.status===401?'GitHub rechazó el token (401). Verifique que sea correcto y no haya caducado.': e.status===403||e.status===404?`GitHub negó el acceso (${e.status}). El token debe tener permiso «Contents: Read and write» sobre ${REPO.repo}.`: e.status===422?'GitHub rechazó el cambio (422): intente de nuevo; si persiste, otra persona modificó la rama en ese momento.':'No se pudo publicar: '+e.message; }
   });
+}
+
+/* ---- Última actualización de los datos (visible para todos) ---- */
+function lastUpdate(){
+  const drafts=SLOTS.filter(sl=>{ const m=metaOf(sl); return m&&m.origin==='local'; });
+  if(PUBINFO&&PUBINFO.version) return {date:new Date(PUBINFO.version),draft:drafts.length>0,source:'publicado'};
+  const ms=SLOTS.map(sl=>metaOf(sl)).filter(Boolean).map(m=>m.modified?new Date(m.modified):m.loadedAt).filter(d=>d&&!isNaN(d));
+  return {date:ms.length?new Date(Math.max(...ms.map(d=>+d))):null,draft:drafts.length>0,source:'archivos'};
+}
+function corteTexto(){
+  const out=[]; const yr=(lastUpdate().date||new Date()).getFullYear(); const cap=t=>t.charAt(0).toUpperCase()+t.slice(1);
+  const ms=metaOf('semana')&&metaOf('semana').mes; if(ms) out.push('Cuota: '+MESES_FULL[ms.idx].toLowerCase()+' '+(ms.anio||yr));
+  const d=state.dps; if(d){ const l=d.fisMes.reduce((a,v,i)=>v>0?i:a,-1); if(l>=0) out.push('Ejecución DPS: hasta '+MESES_FULL[l].toLowerCase()+' '+yr); }
+  return out.join(' · ');
+}
+function renderUpdated(){
+  const el=document.getElementById('upd'); if(!el) return; const u=lastUpdate();
+  if(!u.date){ el.innerHTML=''; return; }
+  const corte=corteTexto();
+  el.innerHTML=`<span class="upd-t"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" style="vertical-align:-2px;margin-right:5px"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.8"/><path d="M12 7v5l3 2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>Última actualización:&nbsp;<b>${fmtFechaLarga(u.date)}</b></span>${corte?`<span class="upd-c">Datos al corte — ${corte}</span>`:''}${u.draft&&editorMode?'<span class="upd-d">Borrador local sin publicar</span>':''}`;
 }
 
 window.mSeleccionarDep=mSeleccionarDep; window.mZoomComedor=mZoomComedor;
