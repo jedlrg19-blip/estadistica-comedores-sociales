@@ -993,7 +993,7 @@ function parseDPS(wb){
   const cDep=hdr.indexOf('DEPARTAMENTO'), cMun=hdr.findIndex(x=>x.includes('MUNICIPIO')), cUM=hdr.findIndex(x=>x.includes('UNIDAD'));
   let cIdx=-1; for(let j=(cUM<0?4:cUM+1);j<sub.length;j++){ if(sub[j].includes('FISICA')){cIdx=j;break;} }
   if(cIdx<0) cIdx=4;
-  const depAgg={},munAgg={},depMes={}; const fisMes=Array(12).fill(0),finMes=Array(12).fill(0),desMes=Array(12).fill(0),almMes=Array(12).fill(0);
+  const unidades=[]; const depAgg={},munAgg={},depMes={}; const fisMes=Array(12).fill(0),finMes=Array(12).fill(0),desMes=Array(12).fill(0),almMes=Array(12).fill(0);
   let cur=null,nCom=0;
   for(let i=h+2;i<R.length;i++){ const r=R[i];
     if(r[cDep]&&String(r[cDep]).trim()) cur=canonDep(r[cDep]);
@@ -1006,10 +1006,12 @@ function parseDPS(wb){
     (munAgg[key]=munAgg[key]||{dep:cur,mun:String(mun).trim(),rac:0,fin:0}); munAgg[key].rac+=fis; munAgg[key].fin+=fin;
     const dm=(depMes[cur]=depMes[cur]||Array(12).fill(0));
     const isDes=norm(umv).startsWith('DESAYUNO'), isAlm=norm(umv).startsWith('ALMUERZO');
-    for(let k=0;k<12;k++){ const a=num(r[cIdx+k*2]); fisMes[k]+=a; dm[k]+=a; if(isDes) desMes[k]+=a; else if(isAlm) almMes[k]+=a; finMes[k]+=num(r[cIdx+1+k*2]); }
+    if(isDes) unidades.push({dep:cur,mun:String(mun).trim(),fis:Array(12).fill(0)});
+    const un=unidades[unidades.length-1];
+    for(let k=0;k<12;k++){ const a=num(r[cIdx+k*2]); fisMes[k]+=a; dm[k]+=a; if(un) un.fis[k]+=a; if(isDes) desMes[k]+=a; else if(isAlm) almMes[k]+=a; finMes[k]+=num(r[cIdx+1+k*2]); }
     if(norm(umv).startsWith('DESAYUNO')) nCom++;
   }
-  return {depAgg,depMes,munAgg:Object.values(munAgg),fisMes,finMes,desMes,almMes,
+  return {depAgg,depMes,munAgg:Object.values(munAgg),fisMes,finMes,desMes,almMes,unidades,
           totRac:Object.values(depAgg).reduce((a,v)=>a+v.rac,0),
           totFin:Object.values(depAgg).reduce((a,v)=>a+v.fin,0),nCom,sheet:sn,integrado:parseIntegrado(wb)};
 }
@@ -2309,6 +2311,12 @@ function buildChecks(){
     add(aprox?'info':'ok','Precisión de ubicación en el mapa',aprox?`${aprox} de ${d.munAgg.length} municipios no tienen coordenada exacta; su punto se coloca de forma aproximada dentro del departamento.`:'Todos los municipios tienen coordenada.');
     if(q) add(q.comedores.length===d.nCom?'ok':'warn','Cantidad de comedores: Cuota vs. Ejecución DPS',
       `Cuota por Semana (activos): ${q.comedores.length} · Ejecución DPS (con ejecución en el año): ${d.nCom}. Son universos distintos (activos hoy vs. con algún servicio en el año); citar cada cifra con su fuente.`);
+    if(q&&q.comedores&&d.unidades&&d.unidades.length){
+      const k=d.fisMes.reduce((a,v,i)=>v>0?i:a,-1);
+      if(k>=0){ const op=d.unidades.filter(u=>u.fis[k]>0), nq=q.comedores.length;
+        const cD={},cQ={}; op.forEach(u=>{ cD[u.dep]=(cD[u.dep]||0)+1; }); q.comedores.forEach(c=>{ cQ[c.dep]=(cQ[c.dep]||0)+1; });
+        const difs=Object.keys({...cD,...cQ}).map(dep=>({dep,dps:cD[dep]||0,cuota:cQ[dep]||0})).filter(x=>x.dps!==x.cuota).sort((a,b)=>Math.abs(b.dps-b.cuota)-Math.abs(a.dps-a.cuota));
+        add(difs.length?'warn':'ok','Comedores: cuota vs. DPS ('+MESES_FULL[k].toLowerCase()+')',`Cuota: ${nq} comedores · DPS con raciones en ${MESES_FULL[k].toLowerCase()}: ${op.length} de ${d.unidades.length} unidades registradas.`+(difs.length?` Difieren por departamento: ${difs.map(x=>`${esc(x.dep)} (cuota ${x.cuota} · DPS ${x.dps})`).join('; ')}. El tablero cuenta los comedores desde la cuota: si falta alguno ahí (p. ej. móviles nuevos), no aparece en ese conteo.`:'')); } }
     if(cl&&cl.total){
       if(cl.formato==='comedor'&&cl.mesIdx>=0){ const k=cl.mesIdx, tot=d.fisMes[k], des=d.desMes[k], alm=d.almMes[k], r=cl.total.raciones, mn=MESES_FULL[k].toLowerCase();
         const close=(a,b)=>b>0&&Math.abs(a-b)/b<=0.01;
