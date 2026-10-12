@@ -10,6 +10,8 @@
 <!-- Librerías estáticas (vía CDN de cdnjs). Si su red bloquea CDNs, descargue estos
      dos archivos y colóquelos junto a index.html cambiando el src por la ruta local. -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="consolidador.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
 <script>try{var t=localStorage.getItem('mides_theme');if(t==='light')document.documentElement.setAttribute('data-theme','light');}catch(e){}</script>
@@ -446,6 +448,28 @@ h1,h2,h3,h4{font-family:'Space Grotesk',system-ui,sans-serif;margin:0;font-weigh
 .fx-btn.pri{background:linear-gradient(180deg,#1d4ed8,#2563EB);border-color:#2563EB;}
 .fx-btn:hover{filter:brightness(1.15);} .fx-btn[disabled]{opacity:.4;cursor:not-allowed;}
 .fx-note{font-size:11px;color:var(--muted2);margin-top:8px;}
+/* ---- Consolidar DPS (admin) ---- */
+.lvl.err{background:#F87171;}
+.cs-drop{display:flex;flex-direction:column;align-items:center;gap:6px;padding:26px 18px;border:1.5px dashed var(--line2);border-radius:16px;text-align:center;cursor:pointer;color:var(--muted);transition:.18s;}
+.cs-drop:hover,.cs-drop.over{border-color:var(--accent2);background:rgba(96,165,250,.07);}
+.cs-drop b{color:var(--txt);font:700 14px 'Space Grotesk';} .cs-drop input{display:none;}
+.cs-steps{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:0 0 14px;}
+.cs-step{padding:11px 13px;border-radius:12px;border:1px solid var(--glass-brd);background:var(--glass);font-size:12px;color:var(--muted);line-height:1.45;}
+.cs-step b{display:block;color:var(--txt);font:700 12.5px 'Space Grotesk';margin-bottom:2px;}
+.cs-step .n{display:inline-grid;place-items:center;width:20px;height:20px;border-radius:50%;background:var(--accent2);color:#06101f;font:700 11px 'Inter';margin-right:6px;}
+.cs-banner{display:flex;flex-wrap:wrap;gap:14px;align-items:center;padding:14px 18px;border-radius:16px;border:1px solid var(--glass-brd);background:var(--glass);margin-bottom:16px;}
+.cs-banner .big{font:700 20px 'Space Grotesk';color:var(--txt);} .cs-banner .sm{font-size:12px;color:var(--muted);}
+.cs-pill{font:600 11px 'Inter';border-radius:999px;padding:3px 10px;} .cs-pill.err{color:#F87171;background:rgba(248,113,113,.13);} .cs-pill.warn{color:#FBBF24;background:rgba(251,191,36,.13);} .cs-pill.ok{color:#34D399;background:rgba(52,211,153,.13);} .cs-pill.info{color:#60A5FA;background:rgba(96,165,250,.13);}
+.cs-av{margin:0;padding:0;list-style:none;font-size:12px;line-height:1.5;color:var(--muted);} .cs-av li{padding:5px 0 5px 16px;position:relative;border-top:1px solid var(--line);} .cs-av li:first-child{border-top:0;}
+.cs-av li:before{content:'';position:absolute;left:0;top:11px;width:8px;height:8px;border-radius:50%;background:#60A5FA;} .cs-av li.aviso:before{background:#FBBF24;} .cs-av li.error:before{background:#F87171;}
+.cs-in{width:100%;min-width:104px;background:var(--panel2);color:var(--txt);border:1px solid var(--line2);border-radius:8px;padding:5px 7px;font:12px ui-monospace,Menlo,monospace;text-align:right;}
+.cs-in.chg{border-color:#FBBF24;}
+table.fx td.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;}
+details.cs-d{margin:8px 0 0;} details.cs-d summary{cursor:pointer;font:600 12px 'Inter';color:var(--accent2);}
+@media(max-width:900px){.cs-steps{grid-template-columns:1fr 1fr;}} @media(max-width:560px){.cs-steps{grid-template-columns:1fr;}}
+html[data-theme="light"] .cs-step,html[data-theme="light"] .cs-banner{background:var(--panel);} html[data-theme="light"] .cs-in{background:var(--panel);}
+html[data-theme="light"] .cs-step .n{color:#fff;background:#3F72AF;}
+
 table.fx{width:100%;border-collapse:collapse;font-size:12px;}
 table.fx th{text-align:left;font:600 10.5px 'Inter';letter-spacing:.08em;text-transform:uppercase;color:var(--muted);padding:8px 10px;border-bottom:1px solid var(--line);}
 table.fx td{padding:8px 10px;border-bottom:1px solid rgba(30,58,95,.5);vertical-align:top;}
@@ -773,6 +797,7 @@ html[data-theme="light"] .card:hover,html[data-theme="light"] .gauge:hover,html[
     <button class="tab" id="tab-pagos" role="tab">Pagos a proveedores</button>
     <button class="tab" id="tab-mapa" role="tab">Indicadores y mapa</button>
     <button class="tab" id="tab-fuentes" role="tab">Fuentes y trazabilidad</button>
+    <button class="tab" id="tab-consol" role="tab">Consolidar DPS</button>
   </nav>
 
   <!-- ============ TAB 1: GRÁFICAS ============ -->
@@ -820,6 +845,9 @@ html[data-theme="light"] .card:hover,html[data-theme="light"] .gauge:hover,html[
   </section>
 
   <!-- ============ TAB: FUENTES Y TRAZABILIDAD ============ -->
+  <section class="panel" id="panel-consol" role="tabpanel">
+    <div id="consol-content"></div>
+  </section>
   <section class="panel" id="panel-fuentes" role="tabpanel">
     <div id="fuentes-content"></div>
   </section>
@@ -2042,7 +2070,7 @@ function renderPagos(){
    Pestañas + arranque
    ============================================================ */
 let activeTab='resumen';
-const TABS=['resumen','graf','clasif','pagos','mapa','fuentes'];
+const TABS=['resumen','graf','clasif','pagos','mapa','fuentes','consol'];
 
 /* --- Indicador deslizante de pestañas --- */
 function positionTabIndicator(){
@@ -2079,7 +2107,7 @@ function animateCounters(root){
 function afterRender(){ const p=$('#panel-'+activeTab); requestAnimationFrame(()=>{ revealPanel(p); animateCounters(p); positionTabIndicator(); }); }
 
 function switchTab(t){
-  if(t==='fuentes'&&!editorMode) t='resumen';
+  if((t==='fuentes'||t==='consol')&&!editorMode) t='resumen';
   activeTab=t;
   TABS.forEach(x=>{ $('#tab-'+x).classList.toggle('active',t===x); $('#panel-'+x).classList.toggle('show',t===x); });
   positionTabIndicator();
@@ -2091,6 +2119,7 @@ function renderActive(){
   else if(activeTab==='clasif') renderClasificador();
   else if(activeTab==='pagos') renderPagos();
   else if(activeTab==='fuentes') renderFuentes();
+  else if(activeTab==='consol') renderConsol();
   else { const mh=$('#mapa-howto'); if(mh) mh.innerHTML=HOWTO.mapa()+SEMAFORO; renderGauges(); renderMapa(); decorateCards(); }
   afterRender();
 }
@@ -2117,7 +2146,7 @@ function init(){
   // Modo administrador: solo se activa entrando por /admin/ (ruta que se protege con Cloudflare Access); ya no por ?editor=1
   try{ if(new URLSearchParams(location.search).get('editor')==='1'){ location.replace(new URL('admin/',location.href.split('?')[0]).href); return; } }catch(e){}
   try{ editorMode=sessionStorage.getItem('mides_admin')==='1'; }catch(e){ editorMode=false; }
-  if(!editorMode){ ['tab-fuentes','panel-fuentes'].forEach(id=>{ const el=document.getElementById(id); if(el) el.style.display='none'; }); }
+  if(!editorMode){ ['tab-fuentes','panel-fuentes','tab-consol','panel-consol'].forEach(id=>{ const el=document.getElementById(id); if(el) el.style.display='none'; }); }
   wireExtras();
   renderActive();   // primer render mientras se comprueban los datos publicados
   (async()=>{
@@ -2877,6 +2906,117 @@ function abrirMenuInforme(btn){
   setTimeout(()=>{ document.addEventListener('click',cerrarMenuInforme,{once:true}); },0);
 }
 document.addEventListener('keydown',e=>{ if(e.key==='Escape') cerrarMenuInforme(); });
+
+
+/* ============================================================
+   CONSOLIDAR DPS · del ZIP de ejecuciones al dps.xlsx correcto (solo administrador)
+   El motor está en consolidador.js; aquí solo la interfaz.
+   ============================================================ */
+const CONS={files:[],ignorados:[],baseBuf:null,baseName:'',res:null,manual:{},shown:{},busy:false,err:''};
+const CONS_PROG={comedores:'Comedor Social',bolsa:'Bolsa Social',jp:'Jóvenes Protagonistas',bm:'Beca Media',bes:'Beca Superior'};
+const CONS_TIPO={comedores:'Comedor Social',bes:'Beca Educación Superior',bm:'Beca Educación Media',jp:'Jóvenes Protagonistas',tmca:'Bolsa Social (TMCA)'};
+function consBase(){
+  if(CONS.baseBuf) return XLSX.read(CONS.baseBuf,{type:'array',cellFormula:true,cellNF:true});
+  const m=metaOf('dps'); if(!m||!m.buf) return null;
+  CONS.baseBuf=m.buf; CONS.baseName=m.name; return XLSX.read(m.buf,{type:'array',cellFormula:true,cellNF:true});
+}
+async function consAdd(list){
+  CONS.err=''; CONS.busy=true; renderConsol();
+  try{
+    for(const f of list){
+      const buf=await f.arrayBuffer();
+      if(/\.zip$/i.test(f.name)){ const z=await Consolidador.leerZip(buf); z.files.forEach(x=>CONS.files.push(x)); CONS.ignorados.push(...z.ignorados); }
+      else if(/\.xlsx?$/i.test(f.name)){ const wb=XLSX.read(buf,{type:'array',cellFormula:true,cellNF:true}); CONS.files.push({nombre:f.name,wb,bytes:buf.byteLength,ids:Consolidador.identificarLibro(wb)}); }
+      else CONS.ignorados.push(f.name);
+    }
+    CONS.manual={}; consRun();
+  }catch(e){ console.error(e); CONS.err='No se pudo leer el archivo: '+(e&&e.message||e); }
+  CONS.busy=false; renderConsol();
+}
+function consRun(){
+  CONS.err=''; CONS.res=null;
+  const base=consBase();
+  if(!base){ CONS.err='No hay un dps vigente cargado que sirva de base. Cargue primero el dps actual en «Fuentes de datos» (o espere a que cargue el publicado) y vuelva a intentar.'; return; }
+  if(!CONS.files.some(f=>f.ids&&f.ids.length)){ CONS.err='Ningún archivo del ZIP se reconoció como programa DPS (Comedores, Becas, Jóvenes, Bolsa).'; return; }
+  try{ CONS.res=Consolidador.consolidar(CONS.files,base,{manual:CONS.manual}); if(!CONS.res.ok) CONS.err=CONS.res.error; }
+  catch(e){ console.error(e); CONS.err='Error al consolidar: '+(e&&e.message||e); }
+}
+function consIntegrado(){
+  const r=CONS.res; if(!r||!r.ok) return null; const ws=r.wb.Sheets.INTEGRADO; const f=r.ctx.filasInt||{}; const out={};
+  Object.keys(CONS_PROG).forEach(k=>{ if(f[k]==null) return; out[k]={}; ['E','F','G','K','N'].forEach(c=>{ const x=ws[c+(f[k]+1)]; out[k][c]=x?x.v:null; }); });
+  return out;
+}
+function consDownload(){
+  const r=CONS.res; if(!r||!r.ok) return; const buf=Consolidador.escribir(r.wb);
+  const blob=new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}); const url=URL.createObjectURL(blob);
+  const a=document.createElement('a'); a.href=url; a.download='dps.xlsx'; document.body.appendChild(a); a.click(); setTimeout(()=>{URL.revokeObjectURL(url);a.remove();},150);
+}
+function consUse(){
+  const r=CONS.res; if(!r||!r.ok) return;
+  if(r.errores&&r.errores.length&&!confirm('Hay '+r.errores.length+' programa(s) con error que se conservaron del dps anterior. ¿Usar de todos modos este dps en el tablero?')) return;
+  const buf=Consolidador.escribir(r.wb); const wb=XLSX.read(buf,{type:'array'});
+  applyWorkbook('dps',wb,'dps.xlsx',{buf,origin:'local'});
+  saveFileToStorage('dps','dps.xlsx',buf); updateClearBtn(); updatePublishBtn(); renderUpdated();
+  CONS.used=true; renderConsol();
+}
+const fmtConsN=v=>v==null||v===''?'—':(typeof v==='number'?(Math.abs(v)<10&&v%1?v.toFixed(4):v.toLocaleString('es-GT',{maximumFractionDigits:2})):esc(v));
+function renderConsol(){
+  const host=$('#consol-content'); if(!host) return;
+  const r=CONS.res, ok=r&&r.ok;
+  const m=metaOf('dps');
+  const filesHTML=CONS.files.length?`<div class="fx-wrap"><table class="fx"><thead><tr><th>Archivo</th><th>Qué es (detectado por su contenido)</th><th>Hoja usada</th></tr></thead><tbody>${CONS.files.map(f=>`<tr><td>${esc(f.nombre)}</td><td>${f.ids&&f.ids.length?f.ids.map(i=>`<span class="cs-pill ok">${esc(CONS_TIPO[i.tipo]||i.tipo)}</span>`).join(' '):'<span class="cs-pill warn">No reconocido: se ignora</span>'}</td><td>${f.ids&&f.ids.length?esc(f.ids.map(i=>i.hoja.trim()).join(', ')):'—'}</td></tr>`).join('')}</tbody></table></div>${CONS.ignorados.length?`<div class="fx-note">Archivos del ZIP que no son Excel (se ignoran): ${esc(CONS.ignorados.join(', '))}</div>`:''}`:'';
+  let body='';
+  if(CONS.busy) body='<div class="fx-sec"><p>Procesando archivos…</p></div>';
+  else if(CONS.err) body=`<div class="fx-sec"><p style="color:#F87171;margin:0">⚠ ${esc(CONS.err)}</p></div>`;
+  if(ok && !CONS.busy){
+    const av=r.ctx.avisos, nE=av.filter(a=>a.nivel==='error').length, nW=av.filter(a=>a.nivel==='aviso').length;
+    const integ=consIntegrado(); CONS.shown=integ;
+    const cards=r.ctx.programas.filter(P=>P.id!=='integrado').map(P=>{ const A=av.filter(a=>a.prog===P.id);
+      const est=P.estado==='ok'?['ok','Actualizado']:P.estado==='conservado'?['no','No vino · se conserva']:['no','Error · se conserva el anterior'];
+      return `<div class="fx-card"><h4>${esc(P.nombre)} <span class="fx-badge ${est[0]}">${est[1]}</span></h4>
+        ${P.kvs.length?`<dl class="fx-dl">${P.kvs.map(([k,v])=>`<dt>${esc(k)}</dt><dd>${fmtConsN(v)}</dd>`).join('')}</dl>`:''}
+        ${A.length?`<ul class="cs-av">${A.map(a=>`<li class="${a.nivel}">${esc(a.msg)}</li>`).join('')}</ul>`:'<div class="fx-note">Sin observaciones.</div>'}</div>`; }).join('');
+    const ch=r.ctx.cambios;
+    const chHTML=ch.length?`<div class="fx-wrap"><table class="fx"><thead><tr><th>Programa</th><th>Celda</th><th>Antes</th><th>Ahora</th><th>De dónde sale</th></tr></thead><tbody>${ch.map(c=>`<tr><td>${esc(CONS_PROG[c.prog]||c.prog)}</td><td><code>${esc(c.celda)}</code></td><td class="num">${fmtConsN(c.antes)}</td><td class="num"><b>${fmtConsN(c.despues)}</b></td><td style="color:var(--muted)">${esc(c.origen)}${c.estado==='manual'?' · <b style="color:#FBBF24">manual</b>':''}</td></tr>`).join('')}</tbody></table></div>`:'<p>No cambió ninguna cifra de INTEGRADO.</p>';
+    const COLS=[['E','Presupuesto inicial (Q)'],['F','Presupuesto vigente (Q)'],['G','Ejecución financiera contable (Q)'],['K','Meta física vigente'],['N','Ejecución vigente (Q)']];
+    const manHTML=`<div class="fx-wrap"><table class="fx"><thead><tr><th>Programa</th>${COLS.map(c=>`<th>${c[1]}</th>`).join('')}</tr></thead><tbody>${Object.keys(integ).map(k=>`<tr><td><b>${esc(CONS_PROG[k])}</b></td>${COLS.map(([c])=>`<td><input class="cs-in" type="number" step="any" data-k="${k}" data-c="${c}" value="${integ[k][c]==null?'':integ[k][c]}"></td>`).join('')}</tr>`).join('')}</tbody></table></div>`;
+    body=`
+      <div class="cs-banner"><div><div class="sm">Corte detectado</div><div class="big">${esc(r.mesNombre)} 2026</div></div>
+        <span class="cs-pill ${nE?'err':'ok'}">${nE} error(es)</span><span class="cs-pill ${nW?'warn':'ok'}">${nW} aviso(s)</span><span class="cs-pill info">${r.ctx.cambios.length} cifra(s) de INTEGRADO cambian</span>
+        <span style="flex:1"></span>
+        <button class="fx-btn" id="cs-dl">⤓ Descargar dps.xlsx</button>
+        <button class="fx-btn pri" id="cs-use">Usar en el tablero (borrador)</button></div>
+      ${CONS.used?`<div class="fx-sec" style="border-color:#34D399"><p style="margin:0;color:#34D399">✓ El tablero ya está usando este dps como borrador local. Para ponerlo en vivo presione <b>Publicar datos</b> (arriba).</p></div>`:''}
+      <div class="sect-h"><span class="k">Resultado por programa</span><span class="ln"></span></div><div class="fx-grid">${cards}</div>
+      <div class="sect-h"><span class="k">Datos que no vienen en los archivos (usted los confirma)</span><span class="ln"></span></div>
+      <div class="fx-sec"><p>Los presupuestos y la ejecución contable (SIGES) los entrega finanzas, no los programas, y no están en el ZIP. Se muestran los valores del dps anterior: corrija los que cambiaron y presione <b>Recalcular</b>.</p>
+        ${r.ctx.pendientes.length?`<ul class="cs-av" style="margin-bottom:12px">${r.ctx.pendientes.map(p=>`<li class="aviso"><b>${esc(CONS_PROG[p.prog]||p.prog)}:</b> ${esc(p.txt)}</li>`).join('')}</ul>`:''}
+        ${manHTML}<div class="fx-acts" style="margin-top:10px"><button class="fx-btn pri" id="cs-recalc">Recalcular con estos datos</button></div></div>
+      <div class="sect-h"><span class="k">Cifras de la hoja INTEGRADO que cambian</span><span class="ln"></span></div>
+      <div class="fx-sec">${chHTML}</div>
+      <details class="cs-d fx-sec"><summary>Todas las verificaciones (${av.length})</summary><ul class="cs-av" style="margin-top:8px">${av.map(a=>`<li class="${a.nivel}"><b>${esc(CONS_PROG[a.prog]||a.prog)}:</b> ${esc(a.msg)}</li>`).join('')}</ul></details>
+      <div class="fx-note">El archivo descargado incluye la hoja «NOTAS DE CONSOLIDACIÓN» con estos mismos avisos y cambios para dejar constancia.</div>`;
+  }
+  host.innerHTML=`
+    <div class="sect-h"><span class="k">Consolidar DPS · del ZIP de ejecuciones al dps.xlsx correcto</span><span class="ln"></span></div>
+    <div class="fx-sec"><p style="margin:0 0 12px">Cada mes los programas envían sus archivos de ejecución (Comedores, Becas, Jóvenes Protagonistas, Bolsa Social) y no se parecen al <code>dps.xlsx</code> que usa el tablero. Aquí se arma el dps correcto automáticamente, <b>reconociendo cada archivo por su contenido</b> y verificando cada cifra contra el dps anterior.</p>
+      <div class="cs-steps"><div class="cs-step"><b><span class="n">1</span>Suba el ZIP</b>O los Excel sueltos.</div><div class="cs-step"><b><span class="n">2</span>Revise</b>Avisos y cifras que cambian.</div><div class="cs-step"><b><span class="n">3</span>Confirme</b>Presupuestos y ejecución contable.</div><div class="cs-step"><b><span class="n">4</span>Use y publique</b>«Usar en el tablero» y luego «Publicar datos».</div></div>
+      <label class="cs-drop" id="cs-drop"><b>Arrastre aquí el ZIP de ejecuciones</b><span>o haga clic para elegir el .zip (también acepta los .xlsx sueltos)</span><input type="file" id="cs-file" accept=".zip,.xlsx,.xls" multiple></label>
+      <div class="fx-note">Base de comparación: ${CONS.baseName||m?esc(CONS.baseName||m.name):'<span style="color:#FBBF24">no hay dps cargado</span>'} (el dps vigente). Todo se procesa en este navegador; nada se envía a ningún servidor.${CONS.files.length?' · <a href="#" id="cs-reset" style="color:var(--accent2)">Empezar de nuevo</a>':''}</div>
+      ${filesHTML?`<div style="margin-top:12px">${filesHTML}</div>`:''}</div>
+    ${body}`;
+  const fi=$('#cs-file',host), dr=$('#cs-drop',host);
+  if(fi) fi.addEventListener('change',()=>{ if(fi.files.length) consAdd([...fi.files]); });
+  if(dr){ ['dragenter','dragover'].forEach(ev=>dr.addEventListener(ev,e=>{ e.preventDefault(); dr.classList.add('over'); })); ['dragleave','drop'].forEach(ev=>dr.addEventListener(ev,e=>{ e.preventDefault(); dr.classList.remove('over'); }));
+    dr.addEventListener('drop',e=>{ const l=[...(e.dataTransfer&&e.dataTransfer.files||[])]; if(l.length) consAdd(l); }); }
+  const rs=$('#cs-reset',host); if(rs) rs.addEventListener('click',e=>{ e.preventDefault(); CONS.files=[]; CONS.ignorados=[]; CONS.res=null; CONS.manual={}; CONS.err=''; CONS.used=false; CONS.baseBuf=null; CONS.baseName=''; renderConsol(); });
+  const dl=$('#cs-dl',host); if(dl) dl.addEventListener('click',consDownload);
+  const us=$('#cs-use',host); if(us) us.addEventListener('click',consUse);
+  const rc=$('#cs-recalc',host); if(rc) rc.addEventListener('click',()=>{
+    host.querySelectorAll('.cs-in').forEach(inp=>{ const k=inp.dataset.k,c=inp.dataset.c; const shown=CONS.shown[k]&&CONS.shown[k][c]; const v=inp.value===''?null:Number(inp.value); if(v!=null&&isFinite(v)&&Math.abs(v-(shown==null?NaN:shown))>1e-9){ (CONS.manual[k]=CONS.manual[k]||{})[c]=v; } });
+    CONS.used=false; consRun(); renderConsol(); });
+  host.querySelectorAll('.cs-in').forEach(inp=>inp.addEventListener('input',()=>{ const k=inp.dataset.k,c=inp.dataset.c; const sh=CONS.shown[k]&&CONS.shown[k][c]; inp.classList.toggle('chg',inp.value!==''&&Math.abs(Number(inp.value)-(sh==null?NaN:sh))>1e-9); }));
+}
 
 window.mSeleccionarDep=mSeleccionarDep; window.mZoomComedor=mZoomComedor;
 document.addEventListener('DOMContentLoaded',init);

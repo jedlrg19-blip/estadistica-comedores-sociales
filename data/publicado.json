@@ -1,5 +1,5 @@
 {
- "version": "2026-10-12T17:52:20.787Z",
+ "version": "2026-10-12T18:59:10.000Z",
  "files": {
   "semana": {
    "path": "data/cuota.xlsx",
@@ -10,8 +10,8 @@
   "dps": {
    "path": "data/dps.xlsx",
    "name": "dps.xlsx",
-   "size": 783964,
-   "sha256": "7427872153d5ad230d18178672f42670dbdc463cb95b273e452007a21bdb1cfe"
+   "size": 1807697,
+   "sha256": "bd7c3aebe4014363b63bd97608f1036c55848dd6a74e927d93bcb11f07526feb"
   },
   "clasif": {
    "path": "data/clasificador.xlsx",
